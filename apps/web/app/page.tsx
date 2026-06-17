@@ -1,26 +1,32 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
+'use client';
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
-
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
-  return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from './context/AuthContext';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role === 'admin' || user.role === 'super_admin') {
+        router.push('/admin');
+      } else {
+        router.push('/user');
+      }
+    }
+  }, [user, loading, router]);
+
   return (
-    <div className="bg-red-500">
-      hello world 
+    <div className="flex items-center justify-center min-h-screen bg-slate-950">
+      <div className="flex flex-col items-center space-y-4">
+        {/* Sleek loading indicator */}
+        <div className="w-12 h-12 border-4 border-t-indigo-500 border-indigo-200 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium text-lg animate-pulse">Checking credentials...</p>
+      </div>
     </div>
   );
 }

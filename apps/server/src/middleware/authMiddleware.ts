@@ -79,7 +79,7 @@ export const checkPermission = (permissionKey: keyof User['permissions']) => {
       return;
     }
 
-    if (!req.user.permissions || !req.user.permissions[permissionKey]) {
+    if (!req.user.hasPerm(permissionKey)) {
       res.status(403).json({ message: `Required permission '${permissionKey}' is missing.` });
       return;
     }

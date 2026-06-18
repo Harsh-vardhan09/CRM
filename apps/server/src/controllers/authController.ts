@@ -30,8 +30,9 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
     const accessToken = signAccessToken({ id: user.id, role: user.role });
     const refreshToken = signRefreshToken({ id: user.id });
 
-    // Store refresh token in db
-    user.refreshToken = refreshToken;
+    // Store refresh token hash in db, nullify plain text token
+    user.refreshTokenHash = user.hashRefreshToken(refreshToken);
+    user.refreshToken = null;
     user.lastLoginAt = new Date();
     await user.save();
 
@@ -49,16 +50,7 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
     // Return user info (exclude passwordHash)
     res.status(200).json({
       status: 'success',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        role: user.role,
-        permissions: user.permissions,
-        orgId: user.orgId,
-        lastLoginAt: user.lastLoginAt,
-      },
+      user: user.toSafeJSON(),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -84,7 +76,7 @@ export const refresh = async (req: AuthenticatedRequest, res: Response): Promise
 
     // Check if user exists and token is active
     const user = await User.findByPk(decoded.id);
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user || !user.verifyRefreshToken(refreshToken)) {
       res.status(401).json({ message: 'Token is invalid or has been revoked.' });
       return;
     }
@@ -117,8 +109,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
       if (decoded && decoded.id) {
         const user = await User.findByPk(decoded.id);
         if (user) {
-          user.refreshToken = null;
-          await user.save();
+          await user.revokeRefreshToken();
         }
       }
     }
@@ -146,16 +137,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
 
     res.status(200).json({
       status: 'success',
-      user: {
-        id: req.user.id,
-        email: req.user.email,
-        name: req.user.name,
-        avatar: req.user.avatar,
-        role: req.user.role,
-        permissions: req.user.permissions,
-        orgId: req.user.orgId,
-        lastLoginAt: req.user.lastLoginAt,
-      },
+      user: req.user.toSafeJSON(),
     });
   } catch (error) {
     console.error('Get Me error:', error);

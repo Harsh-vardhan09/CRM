@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt.js';
-import { User } from '../models/User.js';
-import { Organisation } from '../models/Organisation.js';
+import { prisma } from '../config/db.js';
+import type { User, Organisation } from '@prisma/client';
+import { hasPermission } from '../utils/modelHelpers.js';
 
-// Extend Express Request interface to include user
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: User & { organisation: Organisation | null };
 }
 
 export const protect = async (
@@ -16,11 +16,9 @@ export const protect = async (
   try {
     let token = '';
 
-    // 1. Check for token in cookies
     if (req.cookies && req.cookies.accessToken) {
       token = req.cookies.accessToken;
     } 
-    // 2. Check for token in Authorization header
     else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1] || '';
     }
@@ -30,16 +28,15 @@ export const protect = async (
       return;
     }
 
-    // 3. Verify token
     const decoded = verifyAccessToken(token);
     if (!decoded || !decoded.id) {
       res.status(401).json({ message: 'Invalid or expired access token.' });
       return;
     }
 
-    // 4. Find user in database with associated organisation
-    const currentUser = await User.findByPk(decoded.id, {
-      include: [{ model: Organisation, as: 'organisation' }],
+    const currentUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      include: { organisation: true },
     });
 
     if (!currentUser) {
@@ -47,7 +44,6 @@ export const protect = async (
       return;
     }
 
-    // 5. Grant access
     req.user = currentUser;
     next();
   } catch (error) {
@@ -72,14 +68,14 @@ export const restrictTo = (...roles: string[]) => {
   };
 };
 
-export const checkPermission = (permissionKey: keyof User['permissions']) => {
+export const checkPermission = (permissionKey: string) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ message: 'Authentication required.' });
       return;
     }
 
-    if (!req.user.hasPerm(permissionKey)) {
+    if (!hasPermission(req.user, permissionKey)) {
       res.status(403).json({ message: `Required permission '${permissionKey}' is missing.` });
       return;
     }

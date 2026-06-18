@@ -1,0 +1,127 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  super_admin
+  admin
+  sales_rep
+}
+
+enum LeadStatus {
+  contacted
+  unreachable
+  no_reply
+  qualified
+  lost
+}
+
+enum LeadPriority {
+  low
+  medium
+  high
+}
+
+model Organisation {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String    @db.VarChar(255)
+  industry      String?   @db.VarChar(100)
+  website       String?   @db.VarChar(500)
+  revenue       Decimal?  @db.Decimal(18, 2)
+  employeeCount Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  users     User[]
+  companies Company[]
+  leads     Lead[]
+
+  @@map("organisations")
+}
+
+model User {
+  id               String       @id @default(uuid()) @db.Uuid
+  email            String       @db.VarChar(320)
+  passwordHash     String       @db.VarChar(72)
+  name             String       @db.VarChar(255)
+  avatar           String?      @db.VarChar(500)
+  role             UserRole     @default(sales_rep)
+  orgId            String?      @db.Uuid
+  permissions      Json
+  refreshToken     String?      @db.Text
+  refreshTokenHash String?      @db.Char(64)
+  lastLoginAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  organisation Organisation? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  companies    Company[]
+  leads        Lead[]
+
+  @@unique([email])
+  @@index([orgId, role])
+  @@map("users")
+}
+
+model Company {
+  id            String    @id @default(uuid()) @db.Uuid
+  accountId     String    @db.VarChar(50)
+  name          String    @db.VarChar(255)
+  industry      String?   @db.VarChar(100)
+  website       String?   @db.VarChar(500)
+  revenue       Decimal?  @db.Decimal(18, 2)
+  employeeCount Int?
+  address       String?   @db.VarChar(500)
+  description   String?   @db.Text
+  ownerId       String?   @db.Uuid
+  orgId         String    @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  owner        User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  organisation Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+
+  @@unique([orgId, accountId])
+  @@unique([orgId, name])
+  @@index([orgId, name])
+  @@index([orgId, industry])
+  @@map("companies")
+}
+
+model Lead {
+  id              String       @id @default(uuid()) @db.Uuid
+  name            String       @db.VarChar(255)
+  email           String?      @db.VarChar(320)
+  phone           String?      @db.VarChar(30)
+  status          LeadStatus   @default(no_reply)
+  score           Int          @default(0)
+  priority        LeadPriority @default(low)
+  ownerId         String       @db.Uuid
+  orgId           String       @db.Uuid
+  companyId       String?      @db.Uuid
+  notes           String?      @db.Text
+  source          String?      @db.VarChar(100)
+  lastContactedAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  owner        User         @relation(fields: [ownerId], references: [id])
+  organisation Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@unique([orgId, email])
+  @@index([orgId, status])
+  @@index([orgId, priority])
+  @@index([orgId, ownerId])
+  @@map("leads")
+}

@@ -4,16 +4,15 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import { connectDB, sequelize } from './config/db.js';
-import { Organisation, User, Lead, Company, initModels } from './models/index.js';
+import { connectDB, prisma } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import type { Company } from '@prisma/client';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Apply Middlewares
 app.use(
   cors({
     origin: [
@@ -27,29 +26,29 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Mount Routes
 app.use('/api/auth', authRoutes);
 
-// Health Check
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 const seedDatabase = async () => {
   try {
-    const orgCount = await Organisation.count();
+    const orgCount = await prisma.organisation.count();
     let org;
     if (orgCount === 0) {
       console.log('Seeding default Organisation...');
-      org = await Organisation.create({
-        name: 'Acme CRM Inc.',
-        industry: 'Software',
-        website: 'https://acme-crm.example.com',
-        revenue: 1000000.0,
-        employeeCount: 50,
+      org = await prisma.organisation.create({
+        data: {
+          name: 'Acme CRM Inc.',
+          industry: 'Software',
+          website: 'https://acme-crm.example.com',
+          revenue: 1000000.0,
+          employeeCount: 50,
+        },
       });
     } else {
-      org = await Organisation.findOne();
+      org = await prisma.organisation.findFirst();
     }
 
     if (!org) return;
@@ -100,32 +99,39 @@ const seedDatabase = async () => {
     ];
 
     for (const credential of defaultUsers) {
-      let u = await User.findOne({ where: { email: credential.email } });
+      const u = await prisma.user.findUnique({ where: { email: credential.email } });
       if (!u) {
         console.log(`Seeding missing user: ${credential.email}`);
-        await User.create({
-          email: credential.email,
-          passwordHash: credential.password, // hooks hash this
-          name: credential.name,
-          role: credential.role,
-          orgId: org.id,
-          permissions: credential.permissions,
+        const salt = await bcrypt.genSalt(12);
+        const passwordHash = await bcrypt.hash(credential.password, salt);
+        await prisma.user.create({
+          data: {
+            email: credential.email,
+            passwordHash,
+            name: credential.name,
+            role: credential.role,
+            orgId: org.id,
+            permissions: credential.permissions,
+          },
         });
       } else {
-        const isCorrect = await u.comparePassword(credential.password);
+        const isCorrect = await bcrypt.compare(credential.password, u.passwordHash);
         if (!isCorrect) {
           console.log(`Fixing corrupted/incorrect password hash for user: ${u.email}`);
-          u.passwordHash = credential.password; // plaintext, hook will hash on save
-          await u.save();
+          const salt = await bcrypt.genSalt(12);
+          const passwordHash = await bcrypt.hash(credential.password, salt);
+          await prisma.user.update({
+            where: { id: u.id },
+            data: { passwordHash },
+          });
         }
       }
     }
 
-    // Seed Companies
-    const adminUser = await User.findOne({ where: { email: 'admin@crm.com' } });
-    const salesUser = await User.findOne({ where: { email: 'sales@crm.com' } });
+    const adminUser = await prisma.user.findUnique({ where: { email: 'admin@crm.com' } });
+    const salesUser = await prisma.user.findUnique({ where: { email: 'sales@crm.com' } });
 
-    const companyCount = await Company.count();
+    const companyCount = await prisma.company.count();
     let seededCompanies: Company[] = [];
     if (companyCount === 0) {
       console.log('Seeding synthetic Companies...');
@@ -188,15 +194,21 @@ const seedDatabase = async () => {
       ];
 
       for (const compData of companiesData) {
-        const c = await Company.create(compData);
+        const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
+        const finalAccountId = `ACC-${randomStr}${Date.now().toString(36).toUpperCase().slice(-3)}`;
+        const c = await prisma.company.create({
+          data: {
+            ...compData,
+            accountId: finalAccountId,
+          },
+        });
         seededCompanies.push(c);
       }
     } else {
-      seededCompanies = await Company.findAll();
+      seededCompanies = await prisma.company.findMany();
     }
 
-    // Seed Leads
-    const leadCount = await Lead.count();
+    const leadCount = await prisma.lead.count();
     if (leadCount === 0) {
       console.log('Seeding synthetic Leads...');
       const leadsData = [
@@ -278,7 +290,15 @@ const seedDatabase = async () => {
       ];
 
       for (const leadData of leadsData) {
-        await Lead.create(leadData);
+        const score = leadData.score;
+        const priority = score >= 67 ? 'high' as const : score >= 34 ? 'medium' as const : 'low' as const;
+
+        await prisma.lead.create({
+          data: {
+            ...leadData,
+            priority,
+          },
+        });
       }
     }
 
@@ -288,21 +308,12 @@ const seedDatabase = async () => {
   }
 };
 
-// Start Server
 const startServer = async () => {
-  // Connect DB
   await connectDB();
-
-  // Register all model associations before sync
-  initModels();
-
-  // Sync models (creates tables if they don't exist)
   try {
-    await sequelize.sync({ alter: true });
-    console.log('Database models synced.');
     await seedDatabase();
   } catch (err) {
-    console.error('Database sync failed:', err);
+    console.error('Database seeding failed:', err);
   }
 
   app.listen(PORT, () => {

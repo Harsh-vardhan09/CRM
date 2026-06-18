@@ -1,7 +1,13 @@
 import type { Response } from 'express';
-import { User } from '../models/User.js';
+import bcrypt from 'bcryptjs';
+import { prisma } from '../config/db.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import {
+  toSafeUserJSON,
+  hashRefreshToken,
+  verifyRefreshTokenHash
+} from '../utils/modelHelpers.js';
 
 const cookieOptions = {
   httpOnly: true,
@@ -18,39 +24,38 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       res.status(401).json({ message: 'Incorrect email or password.' });
       return;
     }
 
-    // Generate tokens
     const accessToken = signAccessToken({ id: user.id, role: user.role });
     const refreshToken = signRefreshToken({ id: user.id });
 
-    // Store refresh token hash in db, nullify plain text token
-    user.refreshTokenHash = user.hashRefreshToken(refreshToken);
-    user.refreshToken = null;
-    user.lastLoginAt = new Date();
-    await user.save();
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        refreshTokenHash: hashRefreshToken(refreshToken),
+        refreshToken: null,
+        lastLoginAt: new Date(),
+      },
+    });
 
-    // Set HttpOnly Cookies
     res.cookie('accessToken', accessToken, {
       ...cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return user info (exclude passwordHash)
     res.status(200).json({
       status: 'success',
-      user: user.toSafeJSON(),
+      user: toSafeUserJSON(updatedUser),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -67,27 +72,23 @@ export const refresh = async (req: AuthenticatedRequest, res: Response): Promise
       return;
     }
 
-    // Verify token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded || !decoded.id) {
       res.status(401).json({ message: 'Invalid or expired refresh token.' });
       return;
     }
 
-    // Check if user exists and token is active
-    const user = await User.findByPk(decoded.id);
-    if (!user || !user.verifyRefreshToken(refreshToken)) {
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!user || !verifyRefreshTokenHash(user, refreshToken)) {
       res.status(401).json({ message: 'Token is invalid or has been revoked.' });
       return;
     }
 
-    // Sign new access token
     const newAccessToken = signAccessToken({ id: user.id, role: user.role });
 
-    // Set cookie
     res.cookie('accessToken', newAccessToken, {
       ...cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -107,14 +108,16 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
     if (refreshToken) {
       const decoded = verifyRefreshToken(refreshToken);
       if (decoded && decoded.id) {
-        const user = await User.findByPk(decoded.id);
-        if (user) {
-          await user.revokeRefreshToken();
-        }
+        await prisma.user.updateMany({
+          where: { id: decoded.id },
+          data: {
+            refreshToken: null,
+            refreshTokenHash: null,
+          },
+        });
       }
     }
 
-    // Clear cookies
     res.clearCookie('accessToken', cookieOptions);
     res.clearCookie('refreshToken', cookieOptions);
 
@@ -137,7 +140,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
 
     res.status(200).json({
       status: 'success',
-      user: req.user.toSafeJSON(),
+      user: toSafeUserJSON(req.user),
     });
   } catch (error) {
     console.error('Get Me error:', error);

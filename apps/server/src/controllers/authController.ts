@@ -6,14 +6,34 @@ import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import {
   toSafeUserJSON,
   hashRefreshToken,
-  verifyRefreshTokenHash
-} from '../utils/modelHelpers.js';
+  verifyRefreshTokenHash,
+  getFrontendPermissions
+} from '../middleware/prismaMiddleware.js';
 
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
 };
+
+function formatUserForResponse(user: any) {
+  const safeUser = toSafeUserJSON(user);
+  
+  // Map the dynamic role name to the static roles expected by the frontend
+  let roleName = 'sales_rep';
+  if (user.isSuperAdmin) {
+    roleName = 'super_admin';
+  } else if (user.role?.name.toLowerCase().includes('admin')) {
+    roleName = 'admin';
+  }
+
+  return {
+    ...safeUser,
+    role: roleName,
+    permissions: getFrontendPermissions(user),
+    orgId: user.companyId ? String(user.companyId) : undefined,
+  };
+}
 
 export const login = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -24,22 +44,65 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email, deletedAt: null },
+      include: {
+        company: true,
+        role: {
+          include: {
+            permissions: {
+              include: {
+                feature: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       res.status(401).json({ message: 'Incorrect email or password.' });
       return;
     }
 
-    const accessToken = signAccessToken({ id: user.id, role: user.role });
+    // Check company status
+    if (user.company && user.company.status !== 'active') {
+      res.status(403).json({ message: 'Your organization account is suspended.' });
+      return;
+    }
+
+    const roleName = user.isSuperAdmin ? 'super_admin' : (user.role?.name.toLowerCase().includes('admin') ? 'admin' : 'sales_rep');
+    const accessToken = signAccessToken({ id: user.id, role: roleName });
     const refreshToken = signRefreshToken({ id: user.id });
+
+    // Format permissions on the user object so formatUserForResponse has them
+    const permissions: Record<string, any> = {};
+    if (user.isSuperAdmin) {
+      // Super admins bypass check
+    } else if (user.role?.permissions) {
+      for (const p of user.role.permissions) {
+        permissions[p.feature.code] = p.accessLevel;
+      }
+    }
+    const userWithPermissions = { ...user, permissions };
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         refreshTokenHash: hashRefreshToken(refreshToken),
-        refreshToken: null,
         lastLoginAt: new Date(),
+      },
+      include: {
+        company: true,
+        role: {
+          include: {
+            permissions: {
+              include: {
+                feature: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -55,7 +118,7 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
 
     res.status(200).json({
       status: 'success',
-      user: toSafeUserJSON(updatedUser),
+      user: formatUserForResponse({ ...updatedUser, permissions }),
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -78,13 +141,18 @@ export const refresh = async (req: AuthenticatedRequest, res: Response): Promise
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    const user = await prisma.user.findFirst({
+      where: { id: decoded.id, deletedAt: null },
+      include: { role: true },
+    });
+    
     if (!user || !verifyRefreshTokenHash(user, refreshToken)) {
       res.status(401).json({ message: 'Token is invalid or has been revoked.' });
       return;
     }
 
-    const newAccessToken = signAccessToken({ id: user.id, role: user.role });
+    const roleName = user.isSuperAdmin ? 'super_admin' : (user.role?.name.toLowerCase().includes('admin') ? 'admin' : 'sales_rep');
+    const newAccessToken = signAccessToken({ id: user.id, role: roleName });
 
     res.cookie('accessToken', newAccessToken, {
       ...cookieOptions,
@@ -111,7 +179,6 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
         await prisma.user.updateMany({
           where: { id: decoded.id },
           data: {
-            refreshToken: null,
             refreshTokenHash: null,
           },
         });
@@ -140,7 +207,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
 
     res.status(200).json({
       status: 'success',
-      user: toSafeUserJSON(req.user),
+      user: formatUserForResponse(req.user),
     });
   } catch (error) {
     console.error('Get Me error:', error);

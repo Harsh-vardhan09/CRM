@@ -1,85 +1,176 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwt.js';
-import { prisma } from '../config/db.js';
-import type { User, Organisation } from '@prisma/client';
-import { hasPermission } from '../utils/modelHelpers.js';
+import { verifyAccessToken }               from '../utils/jwt.js';
+import { prisma }                          from '../config/db.js';
+import { getRolePermissions } from './prismaMiddleware.js';
+import type { AccessLevel } from './prismaMiddleware.js';
 
-export interface AuthenticatedRequest extends Request {
-  user?: User & { organisation: Organisation | null };
+// ─── Request augmentation ─────────────────────────────────────────────────────
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthenticatedUser;
+    }
+  }
 }
 
-export const protect = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    let token = '';
+export interface AuthenticatedUser {
+  id:          number;
+  email:       string;
+  name:        string;
+  avatar:      string | null;
+  companyId:   number | null;
+  roleId:      number | null;
+  isOwner:     boolean;
+  isSuperAdmin:boolean;
+  /** Feature code → AccessLevel map; populated by `protect` middleware */
+  permissions: Record<string, AccessLevel>;
+}
 
-    if (req.cookies && req.cookies.accessToken) {
+/** A Request that has been passed through the `protect` middleware. */
+export type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
+
+// ─── protect ─────────────────────────────────────────────────────────────────
+
+/**
+ * JWT guard — attach `req.user` with full permission map.
+ * Reads token from: Authorization: Bearer <token>  OR  cookie: accessToken
+ */
+export async function protect(
+  req:  Request,
+  res:  Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    // 1. Extract raw token
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    } else if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
-    } 
-    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1] || '';
     }
 
     if (!token) {
-      res.status(401).json({ message: 'You are not logged in. Please log in to get access.' });
+      res.status(401).json({ message: 'No access token provided' });
       return;
     }
 
-    const decoded = verifyAccessToken(token);
-    if (!decoded || !decoded.id) {
-      res.status(401).json({ message: 'Invalid or expired access token.' });
+    // 2. Verify signature + expiry (RS256)
+    const payload = verifyAccessToken(token);
+    if (!payload?.id) {
+      res.status(401).json({ message: 'Invalid or expired token' });
       return;
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: { organisation: true },
+    // 3. Load user from DB — includes company for status check
+    const user = await prisma.user.findFirst({
+      where:  { id: payload.id, deletedAt: null },
+      select: {
+        id:           true,
+        email:        true,
+        name:         true,
+        avatar:       true,
+        companyId:    true,
+        roleId:       true,
+        isOwner:      true,
+        isSuperAdmin: true,
+        lastLoginAt:  true,
+        company:      { select: { status: true } },
+      },
     });
 
-    if (!currentUser) {
-      res.status(401).json({ message: 'The user belonging to this token no longer exists.' });
+    if (!user) {
+      res.status(401).json({ message: 'User not found or deactivated' });
       return;
     }
 
-    req.user = currentUser;
+    // Tenant isolation: block suspended company users
+    if (user.company && user.company.status !== 'active') {
+      res.status(403).json({ message: 'Your organization account is suspended.' });
+      return;
+    }
+
+    // 4. Build permission map
+    let permissions: Record<string, AccessLevel> = {};
+
+    if (user.isSuperAdmin) {
+      // Super admins bypass all feature gates, so permissions map can be empty
+      permissions = {};
+    } else if (user.roleId) {
+      permissions = await getRolePermissions(prisma, user.roleId);
+    }
+
+    // 5. Attach to request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      companyId: user.companyId,
+      roleId: user.roleId,
+      isOwner: user.isOwner,
+      isSuperAdmin: user.isSuperAdmin,
+      permissions
+    };
+
     next();
-  } catch (error) {
-    console.error('Auth protect middleware error:', error);
-    res.status(500).json({ message: 'Internal server error during authentication.' });
+  } catch (err) {
+    next(err);
   }
-};
+}
 
-export const restrictTo = (...roles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({ message: 'Authentication required.' });
+// ─── checkPermission ─────────────────────────────────────────────────────────
+
+/**
+ * Route-level permission gate.
+ */
+export function checkPermission(featureCode: string, required: AccessLevel = 'read') {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = req.user;
+
+    if (!user) {
+      res.status(401).json({ message: 'Unauthenticated' });
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'You do not have permission to perform this action.' });
+    // Super admin bypasses all checks
+    if (user.isSuperAdmin) { next(); return; }
+
+    const LEVEL_RANK: Record<AccessLevel, number> = { read: 1, write: 2, full: 3 };
+    const granted = user.permissions[featureCode];
+
+    if (!granted || LEVEL_RANK[granted] < LEVEL_RANK[required]) {
+      res.status(403).json({
+        message: `Requires '${required}' access to feature '${featureCode}'`,
+      });
       return;
     }
 
     next();
   };
-};
+}
 
-export const checkPermission = (permissionKey: string) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({ message: 'Authentication required.' });
-      return;
-    }
+// ─── requireOwner ─────────────────────────────────────────────────────────────
 
-    if (!hasPermission(req.user, permissionKey)) {
-      res.status(403).json({ message: `Required permission '${permissionKey}' is missing.` });
-      return;
-    }
+/** Gate to company owner (billing / CEO contact). Must come after protect(). */
+export function requireOwner(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) { res.status(401).json({ message: 'Unauthenticated' }); return; }
+  if (!req.user.isOwner && !req.user.isSuperAdmin) {
+    res.status(403).json({ message: 'Owner access required' });
+    return;
+  }
+  next();
+}
 
-    next();
-  };
-};
+// ─── requireSuperAdmin ────────────────────────────────────────────────────────
+
+/** Gate to platform super_admin only. Must come after protect(). */
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user?.isSuperAdmin) {
+    res.status(403).json({ message: 'Super-admin access required' });
+    return;
+  }
+  next();
+}

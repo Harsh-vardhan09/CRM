@@ -1,127 +1,252 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-enum UserRole {
-  super_admin
-  admin
-  sales_rep
+datasource db {
+  provider = "postgresql"
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// TENANT LAYER
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// The CRM tenant / workspace.
+/// Previously called "Organisation". Every piece of data is scoped to a Company.
+model Company {
+  id     Int           @id @default(autoincrement())
+  name   String        @db.VarChar(255)
+  /// "active" | "suspended"
+  status CompanyStatus @default(active)
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  roles    Role[]
+  users    User[]
+  clients  Client[]
+  features CompanyFeature[]
+
+  @@map("companies")
+}
+
+enum CompanyStatus {
+  active
+  suspended
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RBAC LAYER
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Tenant-specific role definition (e.g. "Company Admin", "Sales Rep").
+/// Every Company seeds its own default roles on creation (see seedDatabase).
+model Role {
+  id        Int    @id @default(autoincrement())
+  companyId Int
+  /// Human-readable role name — unique within a tenant
+  name      String @db.VarChar(100)
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  company     Company          @relation(fields: [companyId], references: [id])
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("roles")
+}
+
+/// Platform-level feature catalogue (global — not per-tenant).
+/// Examples: "leads_management", "analytics", "email_automation", "exports"
+model Feature {
+  id          Int    @id @default(autoincrement())
+  /// Machine-readable key — unique across the platform
+  code        String @unique @db.VarChar(100)
+  description String @db.VarChar(500)
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  companyAccess CompanyFeature[]
+  rolePerms     RolePermission[]
+
+  @@map("features")
+}
+
+/// Maps which features a Company (tenant) has been granted access to.
+/// Super Admin grants feature access to a company here.
+model CompanyFeature {
+  companyId  Int
+  featureId  Int
+  assignedOn DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([companyId, featureId])
+  @@map("company_features")
+}
+
+/// Maps which features a Role can access, and at what level.
+/// "read"  = GET only
+/// "write" = GET + POST/PATCH
+/// "full"  = GET + POST/PATCH + DELETE + admin actions
+model RolePermission {
+  roleId      Int
+  featureId   Int
+  accessLevel AccessLevel
+
+  role    Role    @relation(fields: [roleId],    references: [id])
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([roleId, featureId])
+  @@map("role_permissions")
+}
+
+enum AccessLevel {
+  read
+  write
+  full
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// USER
+// ═════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+
+  /// PII — treat with care; always go through toSafeJSON() / sanitized resolver
+  email        String  @unique @db.VarChar(320)
+  passwordHash String  @db.VarChar(72) // bcrypt output; hook auto-hashes plain text
+
+  /// Nullable for super_admin (spans all tenants)
+  companyId    Int?
+  /// Every non-super-admin must have a role
+  roleId       Int?
+
+  /// True for the billing/founder contact of a tenant — one per company
+  isOwner      Boolean @default(false)
+  /// True ONLY for the CRM platform builder (Anthropic / you) — one globally
+  isSuperAdmin Boolean @default(false)
+
+  avatar String? @db.VarChar(500) // Cloudinary / S3 URL
+
+  /// SHA-256(rawRefreshToken). Never store the raw JWT.
+  refreshTokenHash String? @db.Char(64)
+
+  lastLoginAt DateTime?
+  /// Soft-delete: set instead of DELETE
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  company Company? @relation(fields: [companyId], references: [id])
+  role    Role?    @relation(fields: [roleId],    references: [id])
+
+  ownedClients Client[] @relation("ClientOwner")
+  ownedLeads   Lead[]   @relation("LeadOwner")
+
+  @@index([companyId, roleId])
+  @@index([companyId])
+  @@map("users")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CRM DATA LAYER (tenant-scoped records)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Previously called "Company".
+/// A prospect / customer business entity that belongs to a tenant (Company).
+model Client {
+  id Int @id @default(autoincrement())
+
+  /// Human-readable account ID — e.g. "ACC-00123". Auto-generated if not set.
+  accountId String @db.VarChar(50)
+
+  name        String   @db.VarChar(255)
+  industry    String?  @db.VarChar(100) // SaaS | Healthcare | Finance | …
+  website     String?  @db.VarChar(500)
+  /// Annual revenue in USD. Gate access at resolver/controller level.
+  revenue     Decimal? @db.Decimal(18, 2)
+  employeeCount Int?
+  address     String?  @db.VarChar(500)
+  description String?  @db.Text
+
+  /// FK → Company (tenant) — ALL queries MUST filter by this
+  companyId Int
+  /// FK → User (account owner) — SET NULL if owner is deleted
+  ownerId   Int?
+
+  /// Soft-delete
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  company Company @relation(fields: [companyId], references: [id])
+  owner   User?   @relation("ClientOwner", fields: [ownerId], references: [id])
+  leads   Lead[]
+
+  @@unique([companyId, accountId])
+  @@unique([companyId, name])
+  @@index([companyId, industry])
+  @@map("clients")
+}
+
+/// LeadStatus enum — tracks where in the sales funnel the lead sits
 enum LeadStatus {
+  no_reply
   contacted
   unreachable
-  no_reply
   qualified
   lost
 }
 
+/// LeadPriority is derived automatically from score (see application logic).
+/// 0–33 → low | 34–66 → medium | 67–100 → high
 enum LeadPriority {
   low
   medium
   high
 }
 
-model Organisation {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String    @db.VarChar(255)
-  industry      String?   @db.VarChar(100)
-  website       String?   @db.VarChar(500)
-  revenue       Decimal?  @db.Decimal(18, 2)
-  employeeCount Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-
-  users     User[]
-  companies Company[]
-  leads     Lead[]
-
-  @@map("organisations")
-}
-
-model User {
-  id               String       @id @default(uuid()) @db.Uuid
-  email            String       @db.VarChar(320)
-  passwordHash     String       @db.VarChar(72)
-  name             String       @db.VarChar(255)
-  avatar           String?      @db.VarChar(500)
-  role             UserRole     @default(sales_rep)
-  orgId            String?      @db.Uuid
-  permissions      Json
-  refreshToken     String?      @db.Text
-  refreshTokenHash String?      @db.Char(64)
-  lastLoginAt      DateTime?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
-
-  organisation Organisation? @relation(fields: [orgId], references: [id], onDelete: SetNull)
-  companies    Company[]
-  leads        Lead[]
-
-  @@unique([email])
-  @@index([orgId, role])
-  @@map("users")
-}
-
-model Company {
-  id            String    @id @default(uuid()) @db.Uuid
-  accountId     String    @db.VarChar(50)
-  name          String    @db.VarChar(255)
-  industry      String?   @db.VarChar(100)
-  website       String?   @db.VarChar(500)
-  revenue       Decimal?  @db.Decimal(18, 2)
-  employeeCount Int?
-  address       String?   @db.VarChar(500)
-  description   String?   @db.Text
-  ownerId       String?   @db.Uuid
-  orgId         String    @db.Uuid
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-
-  owner        User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  organisation Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  leads        Lead[]
-
-  @@unique([orgId, accountId])
-  @@unique([orgId, name])
-  @@index([orgId, name])
-  @@index([orgId, industry])
-  @@map("companies")
-}
-
 model Lead {
-  id              String       @id @default(uuid()) @db.Uuid
-  name            String       @db.VarChar(255)
-  email           String?      @db.VarChar(320)
-  phone           String?      @db.VarChar(30)
-  status          LeadStatus   @default(no_reply)
-  score           Int          @default(0)
-  priority        LeadPriority @default(low)
-  ownerId         String       @db.Uuid
-  orgId           String       @db.Uuid
-  companyId       String?      @db.Uuid
-  notes           String?      @db.Text
-  source          String?      @db.VarChar(100)
+  id Int @id @default(autoincrement())
+
+  /// PII — use safe projection in list endpoints
+  name  String  @db.VarChar(255)
+  email String? @db.VarChar(320) // PII
+  phone String? @db.VarChar(30) // PII
+
+  status LeadStatus @default(no_reply)
+
+  /// 0–100 numeric score. Application layer derives `priority` from this.
+  score    Int          @default(0)
+  priority LeadPriority @default(low)
+
+  notes           String?   @db.Text
+  source          String?   @db.VarChar(100) // manual | webhook | csv_import | linkedin
   lastContactedAt DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?
 
-  owner        User         @relation(fields: [ownerId], references: [id])
-  organisation Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  /// FK → Company (tenant) — ALL queries MUST filter by this
+  companyId Int
+  /// FK → User (sales_rep who owns this lead)
+  ownerId   Int
+  /// FK → Client (optional — links lead to a tracked customer company)
+  clientId  Int?
 
-  @@unique([orgId, email])
-  @@index([orgId, status])
-  @@index([orgId, priority])
-  @@index([orgId, ownerId])
+  /// Soft-delete
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // ── Relations ──────────────────────────────────────────────────────────────
+  // Note: no direct Company relation here — always query via companyId filter
+  owner  User    @relation("LeadOwner", fields: [ownerId], references: [id])
+  client Client? @relation(fields: [clientId], references: [id])
+
+  /// Unique email per tenant (excludes soft-deleted rows at app layer)
+  @@index([companyId, status])
+  @@index([companyId, priority])
+  @@index([companyId, ownerId])
   @@map("leads")
 }

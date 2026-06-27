@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken }               from '../utils/jwt.js';
-import { prisma }                          from '../config/db.js';
-import { getRolePermissions } from './prismaMiddleware.js';
-import type { AccessLevel } from './prismaMiddleware.js';
+import { verifyAccessToken }    from '../utils/jwt.js';
+import { prisma, getRolePermissions } from '@repo/db';
+import type { AccessLevel }     from '@repo/db';
+
 
 // ─── Request augmentation ─────────────────────────────────────────────────────
 

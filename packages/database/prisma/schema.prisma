@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Company {
+  id     Int           @id @default(autoincrement())
+  name   String        @db.VarChar(255)
+  status CompanyStatus @default(active)
+
+  roles    Role[]
+  users    User[]
+  clients  Client[]
+  features CompanyFeature[]
+
+  @@map("companies")
+}
+
+enum CompanyStatus {
+  active
+  suspended
+}
+
+model Role {
+  id        Int    @id @default(autoincrement())
+  companyId Int
+  name      String @db.VarChar(100)
+
+  company     Company          @relation(fields: [companyId], references: [id])
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("roles")
+}
+
+model Feature {
+  id          Int    @id @default(autoincrement())
+  code        String @unique @db.VarChar(100)
+  description String @db.VarChar(500)
+
+  companyAccess CompanyFeature[]
+  rolePerms     RolePermission[]
+
+  @@map("features")
+}
+
+model CompanyFeature {
+  companyId  Int
+  featureId  Int
+  assignedOn DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([companyId, featureId])
+  @@map("company_features")
+}
+
+model RolePermission {
+  roleId      Int
+  featureId   Int
+  accessLevel AccessLevel
+
+  role    Role    @relation(fields: [roleId],    references: [id])
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([roleId, featureId])
+  @@map("role_permissions")
+}
+
+enum AccessLevel {
+  read
+  write
+  full
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  email        String  @unique @db.VarChar(320)
+  passwordHash String  @db.VarChar(72)
+  name         String  @db.VarChar(255)
+  avatar       String? @db.VarChar(500)
+
+  companyId    Int?
+  roleId       Int?
+  isOwner      Boolean @default(false)
+  isSuperAdmin Boolean @default(false)
+
+  refreshTokenHash String? @db.Char(64)
+
+  lastLoginAt DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company      Company? @relation(fields: [companyId], references: [id])
+  role         Role?    @relation(fields: [roleId],    references: [id])
+  ownedClients Client[] @relation("ClientOwner")
+  ownedLeads   Lead[]   @relation("LeadOwner")
+
+  @@index([companyId, roleId])
+  @@index([companyId])
+  @@map("users")
+}
+
+model Client {
+  id            Int      @id @default(autoincrement())
+  accountId     String   @db.VarChar(50)
+  name          String   @db.VarChar(255)
+  industry      String?  @db.VarChar(100)
+  website       String?  @db.VarChar(500)
+  revenue       Decimal? @db.Decimal(18, 2)
+  employeeCount Int?
+  address       String?  @db.VarChar(500)
+  description   String?  @db.Text
+
+  companyId Int
+  ownerId   Int?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id])
+  owner   User?    @relation("ClientOwner", fields: [ownerId], references: [id])
+  leads   Lead[]
+
+  @@unique([companyId, accountId])
+  @@unique([companyId, name])
+  @@index([companyId, industry])
+  @@map("clients")
+}
+
+enum LeadStatus {
+  no_reply
+  contacted
+  unreachable
+  qualified
+  lost
+}
+
+enum LeadPriority {
+  low
+  medium
+  high
+}
+
+model Lead {
+  id    Int    @id @default(autoincrement())
+
+  name  String  @db.VarChar(255)
+  email String? @db.VarChar(320)
+  phone String? @db.VarChar(30)
+
+  status   LeadStatus   @default(no_reply)
+  score    Int          @default(0)
+  priority LeadPriority @default(low)
+
+  notes           String?   @db.Text
+  source          String?   @db.VarChar(100)
+  lastContactedAt DateTime?
+
+  companyId Int
+  ownerId   Int
+  clientId  Int?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  owner  User    @relation("LeadOwner", fields: [ownerId],  references: [id])
+  client Client? @relation(            fields: [clientId],  references: [id])
+
+  @@index([companyId, status])
+  @@index([companyId, priority])
+  @@index([companyId, ownerId])
+  @@map("leads")
+}

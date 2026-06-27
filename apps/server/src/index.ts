@@ -4,9 +4,10 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import { connectDB, prisma } from './config/db.js';
+import { connectDB, prisma } from '@repo/db';
+import type { Client, AccessLevel } from '@repo/db';
 import authRoutes from './routes/authRoutes.js';
-import type { Client } from '@prisma/client';
+
 
 dotenv.config();
 
@@ -134,7 +135,7 @@ const seedDatabase = async () => {
     }
 
     // Sales Rep permissions
-    const salesPermissions = [
+    const salesPermissions: Array<{ featureCode: string, accessLevel: AccessLevel }> = [
       { featureCode: 'leads_management', accessLevel: 'write' },
       { featureCode: 'analytics', accessLevel: 'read' },
       { featureCode: 'automations', accessLevel: 'read' },

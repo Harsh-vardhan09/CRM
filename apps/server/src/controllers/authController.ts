@@ -1,14 +1,9 @@
 import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../config/db.js';
+import { prisma, toSafeUserJSON, hashRefreshToken, verifyRefreshTokenHash, getFrontendPermissions } from '@repo/db';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
-import {
-  toSafeUserJSON,
-  hashRefreshToken,
-  verifyRefreshTokenHash,
-  getFrontendPermissions
-} from '../middleware/prismaMiddleware.js';
+
 
 const cookieOptions = {
   httpOnly: true,

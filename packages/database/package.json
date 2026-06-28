@@ -9,7 +9,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:backfill": "tsx src/scripts/backfill.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

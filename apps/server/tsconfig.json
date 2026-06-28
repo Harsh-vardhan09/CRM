@@ -4,21 +4,20 @@
     // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
-
     // Environment Settings
-    "module": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "target": "esnext",
-    "types": ["node"],
-
+    "types": [
+      "node"
+    ],
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
     // Recommended Options
     "strict": true,
     "verbatimModuleSyntax": true,
@@ -29,6 +28,13 @@
   },
   // Only compile files under src/ ─ prisma.config.ts and prisma/seed.ts
   // live outside rootDir intentionally (used by Prisma CLI, not tsc).
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "prisma", "prisma.config.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma",
+    "prisma.config.ts"
+  ]
 }

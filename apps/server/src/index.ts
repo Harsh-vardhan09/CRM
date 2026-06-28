@@ -143,7 +143,7 @@ const seedDatabase = async () => {
     ];
 
     for (const sp of salesPermissions) {
-      const feat = dbFeatures.find(f => f.code === sp.featureCode);
+      const feat = dbFeatures.find((f: any) => f.code === sp.featureCode);
       if (feat) {
         await prisma.rolePermission.upsert({
           where: {

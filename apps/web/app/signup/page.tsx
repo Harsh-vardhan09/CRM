@@ -27,14 +27,15 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       let endpoint = '';
       let payload = {};
 
       if (activeTab === 'company') {
-        endpoint = 'http://localhost:5000/api/auth/signup/company';
+        endpoint = `${API_URL}/auth/signup/company`;
         payload = { companyName, name, email, password };
       } else {
-        endpoint = 'http://localhost:5000/api/auth/signup/employee';
+        endpoint = `${API_URL}/auth/signup/employee`;
         payload = { companyId: Number(companyId), name, email, password };
       }
 
@@ -56,7 +57,7 @@ export default function SignupPage() {
           // Redirect the CEO to the admin panel
           router.push('/admin/join-requests');
         } else {
-          setSuccess(data.message || 'Registered successfully! You can now log in.');
+          setSuccess(data.message || 'Your request was submitted and is awaiting approval.');
           // Clear form on success
           setCompanyName('');
           setCompanyId('');

@@ -177,7 +177,7 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
 
     res.status(201).json({
       status: 'success',
-      message: 'Employee registered successfully.',
+      message: 'Your request was submitted and is awaiting approval.',
       data: {
         userId: user.id,
         companyId: user.companyId,

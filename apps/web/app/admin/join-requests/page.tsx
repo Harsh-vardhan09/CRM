@@ -31,13 +31,14 @@ export default function JoinRequestsPage() {
     setError('');
     
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const [reqsRes, rolesRes] = await Promise.all([
-        fetch('http://localhost:5000/api/auth/company/join-requests', {
+        fetch(`${API_URL}/auth/company/join-requests`, {
           // In a real app we would use credentials: 'include' if cookies are used,
           // but assuming we are relying on cookies for auth:
           credentials: 'include'
         }),
-        fetch('http://localhost:5000/api/auth/company/roles', {
+        fetch(`${API_URL}/auth/company/roles`, {
           credentials: 'include'
         })
       ]);
@@ -74,7 +75,8 @@ export default function JoinRequestsPage() {
     setSuccess('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/company/join-requests/approve', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${API_URL}/auth/company/join-requests/approve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -101,7 +103,8 @@ export default function JoinRequestsPage() {
     setSuccess('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/company/join-requests/reject', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${API_URL}/auth/company/join-requests/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

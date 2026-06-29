@@ -132,4 +132,4 @@ export function verifyRefreshTokenHash(user: User, rawToken: string): boolean {
 
 // ─── Re-export generated types ────────────────────────────────────────────────
 
-export type { User, Client, Role, Feature, Company, AccessLevel } from "../generated/prisma/client.js";
+export type { User, Client, Role, Feature, Company, AccessLevel, Lead } from "../generated/prisma/client.js";

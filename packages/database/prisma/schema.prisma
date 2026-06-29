@@ -80,12 +80,19 @@ enum AccessLevel {
   full
 }
 
+enum UserStatus {
+  active
+  pending
+  rejected
+}
+
 model User {
   id           Int     @id @default(autoincrement())
   email        String  @unique @db.VarChar(320)
   passwordHash String  @db.VarChar(72)
   name         String  @db.VarChar(255)
   avatar       String? @db.VarChar(500)
+  status       UserStatus @default(pending)
 
   companyId    Int?
   roleId       Int?

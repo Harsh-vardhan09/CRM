@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import type { User, Lead, Client } from '@prisma/client';
+import type { User, Lead, Client } from '@repo/db';
 
 export function toSafeUserJSON(user: User) {
   const { passwordHash, refreshTokenHash, ...safe } = user;

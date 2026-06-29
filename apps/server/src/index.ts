@@ -143,7 +143,7 @@ const seedDatabase = async () => {
     ];
 
     for (const sp of salesPermissions) {
-      const feat = dbFeatures.find(f => f.code === sp.featureCode);
+      const feat = dbFeatures.find((f: any) => f.code === sp.featureCode);
       if (feat) {
         await prisma.rolePermission.upsert({
           where: {
@@ -408,6 +408,18 @@ const seedDatabase = async () => {
 
 const startServer = async () => {
   await connectDB();
+
+  // BACKFILL: Update existing users to active to avoid locking them out
+  try {
+    const result = await prisma.user.updateMany({
+      where: { status: 'pending' },
+      data: { status: 'active' }
+    });
+    console.log(`Backfilled ${result.count} users to active status.`);
+  } catch (err) {
+    console.error('Backfill failed:', err);
+  }
+
   try {
     await seedDatabase();
   } catch (err) {

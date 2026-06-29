@@ -1,8 +1,8 @@
+// middleware/authMiddleware.ts
 import type { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken }    from '../utils/jwt.js';
+import { verifyAccessToken } from '../utils/jwt.js';
 import { prisma, getRolePermissions } from '@repo/db';
-import type { AccessLevel }     from '@repo/db';
-
+import type { AccessLevel } from '@repo/db';
 
 // ─── Request augmentation ─────────────────────────────────────────────────────
 
@@ -15,14 +15,16 @@ declare global {
 }
 
 export interface AuthenticatedUser {
-  id:          number;
-  email:       string;
-  name:        string;
-  avatar:      string | null;
-  companyId:   number | null;
-  roleId:      number | null;
-  isOwner:     boolean;
-  isSuperAdmin:boolean;
+  id: number;
+  email: string;
+  name: string;
+  avatar: string | null;
+  companyId: number | null;
+  roleId: number | null;
+  roleName: string | null; // Keeps role name for direct string checks if needed
+  status: string;
+  isOwner: boolean;
+  isSuperAdmin: boolean;
   /** Feature code → AccessLevel map; populated by `protect` middleware */
   permissions: Record<string, AccessLevel>;
 }
@@ -33,12 +35,12 @@ export type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 // ─── protect ─────────────────────────────────────────────────────────────────
 
 /**
- * JWT guard — attach `req.user` with full permission map.
+ * JWT guard — attaches `req.user` with full permission map.
  * Reads token from: Authorization: Bearer <token>  OR  cookie: accessToken
  */
 export async function protect(
-  req:  Request,
-  res:  Response,
+  req: Request,
+  res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
@@ -64,20 +66,22 @@ export async function protect(
       return;
     }
 
-    // 3. Load user from DB — includes company for status check
+    // 3. Load user from DB — includes company status and role definitions
     const user = await prisma.user.findFirst({
-      where:  { id: payload.id, deletedAt: null },
+      where: { id: payload.id, deletedAt: null },
       select: {
-        id:           true,
-        email:        true,
-        name:         true,
-        avatar:       true,
-        companyId:    true,
-        roleId:       true,
-        isOwner:      true,
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        companyId: true,
+        roleId: true,
+        status: true,
+        isOwner: true,
         isSuperAdmin: true,
-        lastLoginAt:  true,
-        company:      { select: { status: true } },
+        lastLoginAt: true,
+        company: { select: { status: true } },
+        role: { select: { name: true } }, // Fetches dynamic role name
       },
     });
 
@@ -89,6 +93,16 @@ export async function protect(
     // Tenant isolation: block suspended company users
     if (user.company && user.company.status !== 'active') {
       res.status(403).json({ message: 'Your organization account is suspended.' });
+      return;
+    }
+
+    if (user.status === 'pending') {
+      res.status(403).json({ message: "Your account is pending administrator approval." });
+      return;
+    }
+
+    if (user.status === 'rejected') {
+      res.status(403).json({ message: "Your access request to this organisation has been rejected." });
       return;
     }
 
@@ -110,6 +124,8 @@ export async function protect(
       avatar: user.avatar,
       companyId: user.companyId,
       roleId: user.roleId,
+      roleName: user.role?.name || null,
+      status: user.status,
       isOwner: user.isOwner,
       isSuperAdmin: user.isSuperAdmin,
       permissions
@@ -124,7 +140,7 @@ export async function protect(
 // ─── checkPermission ─────────────────────────────────────────────────────────
 
 /**
- * Route-level permission gate.
+ * Route-level permission gate. Handles access hierarchy (full > write > read).
  */
 export function checkPermission(featureCode: string, required: AccessLevel = 'read') {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -141,10 +157,39 @@ export function checkPermission(featureCode: string, required: AccessLevel = 're
     const LEVEL_RANK: Record<AccessLevel, number> = { read: 1, write: 2, full: 3 };
     const granted = user.permissions[featureCode];
 
-    if (!granted || LEVEL_RANK[granted] < LEVEL_RANK[required]) {
+    if (!granted || (LEVEL_RANK[granted] ?? 0) < (LEVEL_RANK[required] ?? 0)) {
       res.status(403).json({
         message: `Requires '${required}' access to feature '${featureCode}'`,
       });
+      return;
+    }
+
+    next();
+  };
+}
+
+// ─── restrictTo ──────────────────────────────────────────────────────────────
+
+/**
+ * Role-level restriction gate (e.g. restrictTo('Admin', 'Sales Rep')).
+ */
+export function restrictTo(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthenticated' });
+      return;
+    }
+
+    // Super Admin bypasses role checks
+    if (req.user.isSuperAdmin) {
+      next();
+      return;
+    }
+
+    const roleName = req.user.roleName;
+
+    if (!roleName || !roles.includes(roleName)) {
+      res.status(403).json({ message: 'You do not have permission to perform this action.' });
       return;
     }
 

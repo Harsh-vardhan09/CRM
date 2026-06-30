@@ -1,6 +1,15 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// .env is in packages/database/, one level up from src/
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 import crypto from "crypto";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../generated/prisma/index.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import type { User } from "../generated/prisma/client.js";
@@ -18,22 +27,26 @@ const softDeleteExtension = {
   query: {
     $allModels: {
       async findFirst({ model, args, query }: any) {
-        if (isSoftDeleteModel(model)) args.where = { deletedAt: null, ...args.where };
+        if (isSoftDeleteModel(model))
+          args.where = { deletedAt: null, ...args.where };
         return query(args);
       },
       async findMany({ model, args, query }: any) {
-        if (isSoftDeleteModel(model)) args.where = { deletedAt: null, ...args.where };
+        if (isSoftDeleteModel(model))
+          args.where = { deletedAt: null, ...args.where };
         return query(args);
       },
       async findUnique({ args, query }: any) {
         return query(args);
       },
       async count({ model, args, query }: any) {
-        if (isSoftDeleteModel(model)) args.where = { deletedAt: null, ...args.where };
+        if (isSoftDeleteModel(model))
+          args.where = { deletedAt: null, ...args.where };
         return query(args);
       },
       async aggregate({ model, args, query }: any) {
-        if (isSoftDeleteModel(model)) (args as any).where = { deletedAt: null, ...(args as any).where };
+        if (isSoftDeleteModel(model))
+          (args as any).where = { deletedAt: null, ...(args as any).where };
         return query(args);
       },
     },
@@ -42,11 +55,11 @@ const softDeleteExtension = {
 
 // ─── Prisma client ────────────────────────────────────────────────────────────
 
-const pool    = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
-const base    = new PrismaClient({ adapter });
+const base = new PrismaClient({ adapter });
 
-export const prisma = base.$extends(softDeleteExtension) as unknown as PrismaClient;
+export const prisma = base.$extends(softDeleteExtension);
 
 export const connectDB = async (): Promise<void> => {
   try {
@@ -57,6 +70,8 @@ export const connectDB = async (): Promise<void> => {
     process.exit(1);
   }
 };
+
+import * as PrismaExports from "../generated/prisma/client.js";
 
 import type { AccessLevel } from "../generated/prisma/client.js";
 
@@ -69,10 +84,12 @@ export async function getRolePermissions(
   roleId: number,
 ): Promise<Record<string, AccessLevel>> {
   const perms = await prismaClient.rolePermission.findMany({
-    where:  { roleId },
+    where: { roleId },
     select: { accessLevel: true, feature: { select: { code: true } } },
   });
-  return Object.fromEntries(perms.map((p) => [p.feature.code, p.accessLevel as AccessLevel]));
+  return Object.fromEntries(
+    perms.map((p) => [p.feature.code, p.accessLevel as AccessLevel]),
+  );
 }
 
 export async function hasPermission(
@@ -94,7 +111,8 @@ export async function hasPermission(
 
 export function toSafeUserJSON(user: Record<string, unknown>) {
   const { passwordHash: _p, refreshTokenHash: _r, ...safe } = user;
-  void _p; void _r;
+  void _p;
+  void _r;
   return safe;
 }
 
@@ -102,12 +120,17 @@ export function getFrontendPermissions(user: any) {
   const perms = user.permissions || {};
   const leadsVal = perms["leads_management"];
   return {
-    can_view_leads:      user.isSuperAdmin || ["read", "write", "full"].includes(leadsVal),
-    can_edit_leads:      user.isSuperAdmin || ["write", "full"].includes(leadsVal),
-    can_delete_leads:    user.isSuperAdmin || leadsVal === "full",
-    can_export_data:     user.isSuperAdmin || perms["exports"] !== undefined || perms["analytics"] !== undefined,
-    can_run_automations: user.isSuperAdmin || perms["automations"] !== undefined,
-    can_invite_users:    user.isSuperAdmin || perms["user_management"] === "full",
+    can_view_leads:
+      user.isSuperAdmin || ["read", "write", "full"].includes(leadsVal),
+    can_edit_leads: user.isSuperAdmin || ["write", "full"].includes(leadsVal),
+    can_delete_leads: user.isSuperAdmin || leadsVal === "full",
+    can_export_data:
+      user.isSuperAdmin ||
+      perms["exports"] !== undefined ||
+      perms["analytics"] !== undefined,
+    can_run_automations:
+      user.isSuperAdmin || perms["automations"] !== undefined,
+    can_invite_users: user.isSuperAdmin || perms["user_management"] === "full",
   };
 }
 
@@ -132,4 +155,12 @@ export function verifyRefreshTokenHash(user: User, rawToken: string): boolean {
 
 // ─── Re-export generated types ────────────────────────────────────────────────
 
-export type { User, Client, Role, Feature, Company, AccessLevel, Lead } from "../generated/prisma/client.js";
+export type {
+  User,
+  Client,
+  Role,
+  Feature,
+  Company,
+  AccessLevel,
+  Lead,
+} from "../generated/prisma/client.js";

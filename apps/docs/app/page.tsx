@@ -1,7 +1,6 @@
 import Image, { type ImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
 
-
 type Props = Omit<ImageProps, "src"> & {
   srcLight: string;
   srcDark: string;
@@ -19,9 +18,5 @@ const ThemeImage = (props: Props) => {
 };
 
 export default function Home() {
-  return (
-    <div className="bg-blue-400">
-      why are we here
-    </div>
-  );
+  return <div className="bg-blue-400">why are we here</div>;
 }

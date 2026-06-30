@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
 
 export default function UserPage() {
   const { user, loading, logout } = useAuth();
@@ -11,14 +11,19 @@ export default function UserPage() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/login');
-      } else if (user.role === 'admin' || user.role === 'super_admin') {
-        router.push('/admin'); // Redirect admins to admin page
+        router.push("/login");
+      } else if (user.role === "admin" || user.role === "super_admin") {
+        router.push("/admin"); // Redirect admins to admin page
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role === 'admin' || user.role === 'super_admin') {
+  if (
+    loading ||
+    !user ||
+    user.role === "admin" ||
+    user.role === "super_admin"
+  ) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
         <div className="flex flex-col items-center space-y-4">
@@ -50,8 +55,18 @@ export default function UserPage() {
             onClick={logout}
             className="flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-300 font-medium text-sm transition hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
             </svg>
             <span>Log Out</span>
           </button>
@@ -69,26 +84,38 @@ export default function UserPage() {
                 {user.name.charAt(0)}
               </div>
               <div>
-                <h4 className="text-slate-200 font-bold text-lg">{user.name}</h4>
+                <h4 className="text-slate-200 font-bold text-lg">
+                  {user.name}
+                </h4>
                 <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs font-medium text-violet-400 capitalize">
                   {user.role}
                 </span>
               </div>
             </div>
-            
+
             <div className="space-y-4 text-sm pt-4 border-t border-slate-800/60">
               <div>
-                <span className="text-slate-500 block text-xs">Email Address</span>
+                <span className="text-slate-500 block text-xs">
+                  Email Address
+                </span>
                 <span className="text-slate-300 font-medium">{user.email}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-xs">Organization ID</span>
-                <span className="text-slate-300 font-mono text-xs">{user.orgId || 'None'}</span>
+                <span className="text-slate-500 block text-xs">
+                  Organization ID
+                </span>
+                <span className="text-slate-300 font-mono text-xs">
+                  {user.orgId || "None"}
+                </span>
               </div>
               <div>
-                <span className="text-slate-500 block text-xs">Last Login Session</span>
+                <span className="text-slate-500 block text-xs">
+                  Last Login Session
+                </span>
                 <span className="text-slate-300 font-medium">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'First Login'}
+                  {user.lastLoginAt
+                    ? new Date(user.lastLoginAt).toLocaleString()
+                    : "First Login"}
                 </span>
               </div>
             </div>
@@ -99,30 +126,32 @@ export default function UserPage() {
             <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3">
               Role Permissions & System Capabilities
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {Object.entries(user.permissions).map(([key, val]) => (
-                <div 
-                  key={key} 
+                <div
+                  key={key}
                   className={`flex items-center space-x-3 p-4 rounded-xl border transition ${
-                    val 
-                      ? 'bg-violet-500/5 border-violet-500/20 text-slate-200' 
-                      : 'bg-slate-900/20 border-slate-800/60 text-slate-500'
+                    val
+                      ? "bg-violet-500/5 border-violet-500/20 text-slate-200"
+                      : "bg-slate-900/20 border-slate-800/60 text-slate-500"
                   }`}
                 >
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center border ${
-                    val 
-                      ? 'border-violet-400 text-violet-400 bg-violet-500/10' 
-                      : 'border-slate-800 text-slate-600'
-                  }`}>
-                    {val ? '✓' : '✗'}
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center border ${
+                      val
+                        ? "border-violet-400 text-violet-400 bg-violet-500/10"
+                        : "border-slate-800 text-slate-600"
+                    }`}
+                  >
+                    {val ? "✓" : "✗"}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold capitalize">
-                      {key.replace(/_/g, ' ')}
+                      {key.replace(/_/g, " ")}
                     </span>
                     <span className="text-xs text-slate-500">
-                      {val ? 'Granted to Sales Rep' : 'Requires Upgrade'}
+                      {val ? "Granted to Sales Rep" : "Requires Upgrade"}
                     </span>
                   </div>
                 </div>
@@ -130,8 +159,15 @@ export default function UserPage() {
             </div>
 
             <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-5 mt-6 text-sm text-slate-400 space-y-2">
-              <span className="font-semibold text-slate-300 block mb-1">💼 Sales Representative Note</span>
-              <p>You have access to view and edit leads scoped to your organization. To perform deletion, export files, build automations, or invite team members, please contact an administrator to upgrade your access role.</p>
+              <span className="font-semibold text-slate-300 block mb-1">
+                💼 Sales Representative Note
+              </span>
+              <p>
+                You have access to view and edit leads scoped to your
+                organization. To perform deletion, export files, build
+                automations, or invite team members, please contact an
+                administrator to upgrade your access role.
+              </p>
             </div>
           </div>
         </div>

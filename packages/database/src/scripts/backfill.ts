@@ -3,7 +3,7 @@ import { prisma } from "../index.js";
 
 async function backfill() {
   console.log("Running backfill: updating existing users to active status...");
-  
+
   if (!process.env.DATABASE_URL) {
     console.error("Error: DATABASE_URL is not set in the environment.");
     process.exit(1);

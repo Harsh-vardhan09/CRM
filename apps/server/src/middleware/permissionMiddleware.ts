@@ -6,7 +6,7 @@ const hierarchy = {
   none: 0,
   read: 1,
   write: 2,
-  admin: 3,
+  full: 3,
 };
 
 export function requirePermission(

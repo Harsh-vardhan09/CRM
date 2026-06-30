@@ -62,16 +62,8 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const base = new PrismaClient({ adapter });
 
-console.log("base.company:", typeof (base as any).company);
-console.log("base.feature:", typeof (base as any).feature);
-console.log("base.user:", typeof (base as any).user);
-
 export const prisma = base.$extends(softDeleteExtension);
 
-
-console.log("extended.company:", typeof (prisma as any).company);
-console.log("extended.feature:", typeof (prisma as any).feature);
-console.log("extended.user:", typeof (prisma as any).user);
 export const connectDB = async (): Promise<void> => {
   try {
     await (prisma as any).$connect();
@@ -83,7 +75,6 @@ export const connectDB = async (): Promise<void> => {
 };
 
 import * as PrismaExports from "../generated/prisma/client.js";
-console.log("Prisma exports:", Object.keys(PrismaExports));
 
 import type { AccessLevel } from "../generated/prisma/client.js";
 

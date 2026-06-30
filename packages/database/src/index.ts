@@ -8,14 +8,11 @@ const __dirname = path.dirname(__filename);
 // .env is in packages/database/, one level up from src/
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-
 import crypto from "crypto";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import type { User } from "../generated/prisma/client.js";
-
-
 
 // ─── Soft-delete extension ────────────────────────────────────────────────────
 

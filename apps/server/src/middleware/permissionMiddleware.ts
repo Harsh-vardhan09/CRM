@@ -1,7 +1,6 @@
 import type { Response, NextFunction } from "express";
 import { resolveUserPermissions } from "../utils/permission.service";
 
-
 const hierarchy = {
   none: 0,
   read: 1,

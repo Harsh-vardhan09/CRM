@@ -34,11 +34,9 @@ export const signUpCompany = async (
     const { companyName, name, email, password } = req.body;
 
     if (!companyName || !name || !email || !password) {
-      res
-        .status(400)
-        .json({
-          message: "Please provide companyName, name, email, and password.",
-        });
+      res.status(400).json({
+        message: "Please provide companyName, name, email, and password.",
+      });
       return;
     }
 
@@ -149,11 +147,9 @@ export const signUpEmployee = async (
     const { name, email, password, companyId } = req.body;
 
     if (!name || !email || !password || !companyId) {
-      res
-        .status(400)
-        .json({
-          message: "Please provide name, email, password, and companyId.",
-        });
+      res.status(400).json({
+        message: "Please provide name, email, password, and companyId.",
+      });
       return;
     }
 

@@ -1,11 +1,9 @@
 import { prisma } from "../config/db";
 import { redis } from "../utils/redis.service";
 
-
 const CACHE_PREFIX = "permissions:";
 
 export async function resolveUserPermissions(userId: number) {
-
   const cacheKey = `${CACHE_PREFIX}${userId}`;
   const cached = await redis.get(cacheKey);
 
@@ -35,7 +33,6 @@ export async function resolveUserPermissions(userId: number) {
   user.role.permissions.forEach((permission) => {
     permissions[permission.feature.code] = permission.accessLevel;
   });
-  
 
   await redis.set(cacheKey, JSON.stringify(permissions), "EX", 60 * 60);
   return permissions;

@@ -106,12 +106,9 @@ export async function protect(
     }
 
     if (user.status === "rejected") {
-      res
-        .status(403)
-        .json({
-          message:
-            "Your access request to this organisation has been rejected.",
-        });
+      res.status(403).json({
+        message: "Your access request to this organisation has been rejected.",
+      });
       return;
     }
 
@@ -208,11 +205,9 @@ export function restrictTo(...roles: string[]) {
     const roleName = req.user.roleName;
 
     if (!roleName || !roles.includes(roleName)) {
-      res
-        .status(403)
-        .json({
-          message: "You do not have permission to perform this action.",
-        });
+      res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
       return;
     }
 

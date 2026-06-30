@@ -10,8 +10,6 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 // Walk up to monorepo root: src -> database -> packages -> root
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-
-
 let privateKey: string | Buffer;
 let publicKey: string | Buffer;
 

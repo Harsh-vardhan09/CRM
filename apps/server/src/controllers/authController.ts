@@ -1,21 +1,24 @@
 // controllers/authController.ts
-import type { Response } from 'express';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import { prisma } from '@repo/db';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
-import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
-
+import type { Response } from "express";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { prisma } from "@repo/db";
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwt.js";
+import type { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
 };
 
 // Helper to hash the refresh token for the @db.Char(64) database column
 const hashToken = (token: string): string => {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 };
 
 // ==========================================
@@ -23,19 +26,28 @@ const hashToken = (token: string): string => {
 // ==========================================
 
 // FLOW 1: Register a New Company (CEO / Owner)
-export const signUpCompany = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const signUpCompany = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { companyName, name, email, password } = req.body;
 
     if (!companyName || !name || !email || !password) {
-      res.status(400).json({ message: 'Please provide companyName, name, email, and password.' });
+      res
+        .status(400)
+        .json({
+          message: "Please provide companyName, name, email, and password.",
+        });
       return;
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      res.status(400).json({ message: 'A user with this email address already exists.' });
+      res
+        .status(400)
+        .json({ message: "A user with this email address already exists." });
       return;
     }
 
@@ -49,7 +61,7 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
       const company = await tx.company.create({
         data: {
           name: companyName,
-          status: 'active',
+          status: "active",
         },
       });
 
@@ -57,7 +69,7 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
       const adminRole = await tx.role.create({
         data: {
           companyId: company.id,
-          name: 'Admin',
+          name: "Admin",
         },
       });
 
@@ -65,7 +77,7 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
       await tx.role.create({
         data: {
           companyId: company.id,
-          name: 'Sales Rep',
+          name: "Sales Rep",
         },
       });
 
@@ -79,7 +91,7 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
           roleId: adminRole.id,
           isOwner: true,
           isSuperAdmin: false,
-          status: 'active',
+          status: "active",
         },
       });
 
@@ -87,7 +99,10 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
     });
 
     // Auto-login the new Owner
-    const accessToken = signAccessToken({ id: result.user.id, role: result.adminRole.name });
+    const accessToken = signAccessToken({
+      id: result.user.id,
+      role: result.adminRole.name,
+    });
     const refreshToken = signRefreshToken({ id: result.user.id });
     const hashedRefresh = hashToken(refreshToken);
 
@@ -96,40 +111,49 @@ export const signUpCompany = async (req: AuthenticatedRequest, res: Response): P
       data: {
         refreshTokenHash: hashedRefresh,
         lastLoginAt: new Date(),
-      }
+      },
     });
 
-    res.cookie('accessToken', accessToken, {
+    res.cookie("accessToken", accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(201).json({
-      status: 'success',
-      message: 'Company and Owner account registered successfully.',
+      status: "success",
+      message: "Company and Owner account registered successfully.",
       data: {
         companyId: result.company.id,
         userId: result.user.id,
       },
     });
   } catch (error) {
-    console.error('Company signup error:', error);
-    res.status(500).json({ message: 'Internal server error during company registration.' });
+    console.error("Company signup error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error during company registration." });
   }
 };
 
 // FLOW 2: Register an Employee to an Existing Company
-export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const signUpEmployee = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { name, email, password, companyId } = req.body;
 
     if (!name || !email || !password || !companyId) {
-      res.status(400).json({ message: 'Please provide name, email, password, and companyId.' });
+      res
+        .status(400)
+        .json({
+          message: "Please provide name, email, password, and companyId.",
+        });
       return;
     }
 
@@ -138,14 +162,16 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
       where: { id: Number(companyId) },
     });
     if (!company) {
-      res.status(404).json({ message: 'Company not found.' });
+      res.status(404).json({ message: "Company not found." });
       return;
     }
 
     // 2. Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      res.status(400).json({ message: 'A user with this email address already exists.' });
+      res
+        .status(400)
+        .json({ message: "A user with this email address already exists." });
       return;
     }
 
@@ -157,7 +183,7 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
     const salesRepRole = await prisma.role.findFirst({
       where: {
         companyId: Number(companyId),
-        name: 'Sales Rep',
+        name: "Sales Rep",
       },
     });
 
@@ -171,13 +197,13 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
         roleId: salesRepRole ? salesRepRole.id : null,
         isOwner: false,
         isSuperAdmin: false,
-        status: 'pending',
+        status: "pending",
       },
     });
 
     res.status(201).json({
-      status: 'success',
-      message: 'Your request was submitted and is awaiting approval.',
+      status: "success",
+      message: "Your request was submitted and is awaiting approval.",
       data: {
         userId: user.id,
         companyId: user.companyId,
@@ -185,8 +211,10 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
       },
     });
   } catch (error) {
-    console.error('Employee signup error:', error);
-    res.status(500).json({ message: 'Internal server error during employee registration.' });
+    console.error("Employee signup error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error during employee registration." });
   }
 };
 
@@ -194,38 +222,48 @@ export const signUpEmployee = async (req: AuthenticatedRequest, res: Response): 
 // 2. SIGN-IN & SESSION LOGIC (YOUR ORIGINAL LOGIC)
 // ==========================================
 
-export const login = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const login = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({ message: 'Please provide email and password.' });
+      res.status(400).json({ message: "Please provide email and password." });
       return;
     }
 
     // Find user by email using Prisma and include their Role relationship
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { role: true }
+      include: { role: true },
     });
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      res.status(401).json({ message: 'Incorrect email or password.' });
+      res.status(401).json({ message: "Incorrect email or password." });
       return;
     }
 
-    if (user.status === 'pending') {
-      res.status(403).json({ message: 'Your account is pending administrator approval.' });
+    if (user.status === "pending") {
+      res
+        .status(403)
+        .json({ message: "Your account is pending administrator approval." });
       return;
     }
 
-    if (user.status === 'rejected') {
-      res.status(403).json({ message: 'Your access request has been rejected.' });
+    if (user.status === "rejected") {
+      res
+        .status(403)
+        .json({ message: "Your access request has been rejected." });
       return;
     }
 
     // Generate tokens
-    const accessToken = signAccessToken({ id: user.id, role: user.role?.name || null });
+    const accessToken = signAccessToken({
+      id: user.id,
+      role: user.role?.name || null,
+    });
     const refreshToken = signRefreshToken({ id: user.id });
 
     // Hash refresh token for DB storage security
@@ -237,23 +275,23 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
       data: {
         refreshTokenHash: hashedRefresh,
         lastLoginAt: new Date(),
-      }
+      },
     });
 
     // Set HttpOnly Cookies
-    res.cookie('accessToken', accessToken, {
+    res.cookie("accessToken", accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     // Return user info
     res.status(200).json({
-      status: 'success',
+      status: "success",
       user: {
         id: user.id,
         email: user.email,
@@ -265,63 +303,76 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
         companyId: user.companyId,
         lastLoginAt: user.lastLoginAt,
         // Permissions are left empty here; your teammate's resolution logic will populate this later
-        permissions: {}
+        permissions: {},
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Internal server error during login.' });
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Internal server error during login." });
   }
 };
 
-export const refresh = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const refresh = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { refreshToken } = req.cookies;
 
     if (!refreshToken) {
-      res.status(401).json({ message: 'Refresh token not found.' });
+      res.status(401).json({ message: "Refresh token not found." });
       return;
     }
 
     // Verify token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded || !decoded.id) {
-      res.status(401).json({ message: 'Invalid or expired refresh token.' });
+      res.status(401).json({ message: "Invalid or expired refresh token." });
       return;
     }
 
     // Check if user exists using Prisma
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      include: { role: true }
+      include: { role: true },
     });
 
     const incomingHash = hashToken(refreshToken);
     if (!user || user.refreshTokenHash !== incomingHash) {
-      res.status(401).json({ message: 'Token is invalid or has been revoked.' });
+      res
+        .status(401)
+        .json({ message: "Token is invalid or has been revoked." });
       return;
     }
 
     // Sign new access token
-    const newAccessToken = signAccessToken({ id: user.id, role: user.role?.name || null });
+    const newAccessToken = signAccessToken({
+      id: user.id,
+      role: user.role?.name || null,
+    });
 
     // Set cookie
-    res.cookie('accessToken', newAccessToken, {
+    res.cookie("accessToken", newAccessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.status(200).json({
-      status: 'success',
-      message: 'Access token refreshed successfully.',
+      status: "success",
+      message: "Access token refreshed successfully.",
     });
   } catch (error) {
-    console.error('Refresh token error:', error);
-    res.status(500).json({ message: 'Internal server error during token refresh.' });
+    console.error("Refresh token error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error during token refresh." });
   }
 };
 
-export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const logout = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { refreshToken } = req.cookies;
 
@@ -331,35 +382,38 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
         // Clear refresh token hash in DB using Prisma
         await prisma.user.update({
           where: { id: decoded.id },
-          data: { refreshTokenHash: null }
+          data: { refreshTokenHash: null },
         });
       }
     }
 
     // Clear cookies
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Logged out successfully.',
+      status: "success",
+      message: "Logged out successfully.",
     });
   } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ message: 'Internal server error during logout.' });
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Internal server error during logout." });
   }
 };
 
-export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getMe = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated.' });
+      res.status(401).json({ message: "Not authenticated." });
       return;
     }
 
     // req.user has been populated by your middleware
     res.status(200).json({
-      status: 'success',
+      status: "success",
       user: {
         id: req.user.id,
         email: req.user.email,
@@ -369,12 +423,14 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
         isOwner: req.user.isOwner,
         isSuperAdmin: req.user.isSuperAdmin,
         companyId: req.user.companyId,
-        permissions: {} // Left empty; populated later by the permission team
+        permissions: {}, // Left empty; populated later by the permission team
       },
     });
   } catch (error) {
-    console.error('Get Me error:', error);
-    res.status(500).json({ message: 'Internal server error fetching profile.' });
+    console.error("Get Me error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error fetching profile." });
   }
 };
 
@@ -382,17 +438,20 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
 // 3. ADMIN JOIN-REQUEST ENDPOINTS (NEW)
 // ==========================================
 
-export const getJoinRequests = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getJoinRequests = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     if (!req.user || !req.user.companyId) {
-      res.status(400).json({ message: 'Company context missing.' });
+      res.status(400).json({ message: "Company context missing." });
       return;
     }
 
     const pendingUsers = await prisma.user.findMany({
       where: {
         companyId: req.user.companyId,
-        status: 'pending',
+        status: "pending",
         deletedAt: null,
       },
       select: {
@@ -403,23 +462,26 @@ export const getJoinRequests = async (req: AuthenticatedRequest, res: Response):
       },
     });
 
-    res.status(200).json({ status: 'success', data: pendingUsers });
+    res.status(200).json({ status: "success", data: pendingUsers });
   } catch (error) {
-    console.error('getJoinRequests error:', error);
-    res.status(500).json({ message: 'Error fetching join requests.' });
+    console.error("getJoinRequests error:", error);
+    res.status(500).json({ message: "Error fetching join requests." });
   }
 };
 
-export const approveJoinRequest = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const approveJoinRequest = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     if (!req.user || !req.user.companyId) {
-      res.status(400).json({ message: 'Company context missing.' });
+      res.status(400).json({ message: "Company context missing." });
       return;
     }
 
     const { userId, roleId } = req.body;
     if (!userId || !roleId) {
-      res.status(400).json({ message: 'userId and roleId are required.' });
+      res.status(400).json({ message: "userId and roleId are required." });
       return;
     }
 
@@ -429,28 +491,33 @@ export const approveJoinRequest = async (req: AuthenticatedRequest, res: Respons
         companyId: req.user.companyId,
       },
       data: {
-        status: 'active',
+        status: "active",
         roleId: Number(roleId),
       },
     });
 
-    res.status(200).json({ status: 'success', message: 'User approved successfully.' });
+    res
+      .status(200)
+      .json({ status: "success", message: "User approved successfully." });
   } catch (error) {
-    console.error('approveJoinRequest error:', error);
-    res.status(500).json({ message: 'Error approving join request.' });
+    console.error("approveJoinRequest error:", error);
+    res.status(500).json({ message: "Error approving join request." });
   }
 };
 
-export const rejectJoinRequest = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const rejectJoinRequest = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     if (!req.user || !req.user.companyId) {
-      res.status(400).json({ message: 'Company context missing.' });
+      res.status(400).json({ message: "Company context missing." });
       return;
     }
 
     const { userId } = req.body;
     if (!userId) {
-      res.status(400).json({ message: 'userId is required.' });
+      res.status(400).json({ message: "userId is required." });
       return;
     }
 
@@ -460,21 +527,26 @@ export const rejectJoinRequest = async (req: AuthenticatedRequest, res: Response
         companyId: req.user.companyId,
       },
       data: {
-        status: 'rejected',
+        status: "rejected",
       },
     });
 
-    res.status(200).json({ status: 'success', message: 'User rejected successfully.' });
+    res
+      .status(200)
+      .json({ status: "success", message: "User rejected successfully." });
   } catch (error) {
-    console.error('rejectJoinRequest error:', error);
-    res.status(500).json({ message: 'Error rejecting join request.' });
+    console.error("rejectJoinRequest error:", error);
+    res.status(500).json({ message: "Error rejecting join request." });
   }
 };
 
-export const getCompanyRoles = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getCompanyRoles = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
   try {
     if (!req.user || !req.user.companyId) {
-      res.status(400).json({ message: 'Company context missing.' });
+      res.status(400).json({ message: "Company context missing." });
       return;
     }
 
@@ -483,9 +555,9 @@ export const getCompanyRoles = async (req: AuthenticatedRequest, res: Response):
       select: { id: true, name: true },
     });
 
-    res.status(200).json({ status: 'success', data: roles });
+    res.status(200).json({ status: "success", data: roles });
   } catch (error) {
-    console.error('getCompanyRoles error:', error);
-    res.status(500).json({ message: 'Error fetching roles.' });
+    console.error("getCompanyRoles error:", error);
+    res.status(500).json({ message: "Error fetching roles." });
   }
 };

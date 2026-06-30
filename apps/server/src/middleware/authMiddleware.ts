@@ -1,8 +1,8 @@
 // middleware/authMiddleware.ts
-import type { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwt.js';
-import { prisma, getRolePermissions } from '@repo/db';
-import type { AccessLevel } from '@repo/db';
+import type { Request, Response, NextFunction } from "express";
+import { verifyAccessToken } from "../utils/jwt.js";
+import { prisma, getRolePermissions } from "@repo/db";
+import type { AccessLevel } from "@repo/db";
 
 // ─── Request augmentation ─────────────────────────────────────────────────────
 
@@ -48,21 +48,21 @@ export async function protect(
     let token: string | undefined;
     const authHeader = req.headers.authorization;
 
-    if (authHeader?.startsWith('Bearer ')) {
+    if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.slice(7);
     } else if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     }
 
     if (!token) {
-      res.status(401).json({ message: 'No access token provided' });
+      res.status(401).json({ message: "No access token provided" });
       return;
     }
 
     // 2. Verify signature + expiry (RS256)
     const payload = verifyAccessToken(token);
     if (!payload?.id) {
-      res.status(401).json({ message: 'Invalid or expired token' });
+      res.status(401).json({ message: "Invalid or expired token" });
       return;
     }
 
@@ -86,23 +86,32 @@ export async function protect(
     });
 
     if (!user) {
-      res.status(401).json({ message: 'User not found or deactivated' });
+      res.status(401).json({ message: "User not found or deactivated" });
       return;
     }
 
     // Tenant isolation: block suspended company users
-    if (user.company && user.company.status !== 'active') {
-      res.status(403).json({ message: 'Your organization account is suspended.' });
+    if (user.company && user.company.status !== "active") {
+      res
+        .status(403)
+        .json({ message: "Your organization account is suspended." });
       return;
     }
 
-    if (user.status === 'pending') {
-      res.status(403).json({ message: "Your account is pending administrator approval." });
+    if (user.status === "pending") {
+      res
+        .status(403)
+        .json({ message: "Your account is pending administrator approval." });
       return;
     }
 
-    if (user.status === 'rejected') {
-      res.status(403).json({ message: "Your access request to this organisation has been rejected." });
+    if (user.status === "rejected") {
+      res
+        .status(403)
+        .json({
+          message:
+            "Your access request to this organisation has been rejected.",
+        });
       return;
     }
 
@@ -128,7 +137,7 @@ export async function protect(
       status: user.status,
       isOwner: user.isOwner,
       isSuperAdmin: user.isSuperAdmin,
-      permissions
+      permissions,
     };
 
     next();
@@ -142,19 +151,29 @@ export async function protect(
 /**
  * Route-level permission gate. Handles access hierarchy (full > write > read).
  */
-export function checkPermission(featureCode: string, required: AccessLevel = 'read') {
+export function checkPermission(
+  featureCode: string,
+  required: AccessLevel = "read",
+) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = req.user;
 
     if (!user) {
-      res.status(401).json({ message: 'Unauthenticated' });
+      res.status(401).json({ message: "Unauthenticated" });
       return;
     }
 
     // Super admin bypasses all checks
-    if (user.isSuperAdmin) { next(); return; }
+    if (user.isSuperAdmin) {
+      next();
+      return;
+    }
 
-    const LEVEL_RANK: Record<AccessLevel, number> = { read: 1, write: 2, full: 3 };
+    const LEVEL_RANK: Record<AccessLevel, number> = {
+      read: 1,
+      write: 2,
+      full: 3,
+    };
     const granted = user.permissions[featureCode];
 
     if (!granted || (LEVEL_RANK[granted] ?? 0) < (LEVEL_RANK[required] ?? 0)) {
@@ -176,7 +195,7 @@ export function checkPermission(featureCode: string, required: AccessLevel = 're
 export function restrictTo(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({ message: 'Unauthenticated' });
+      res.status(401).json({ message: "Unauthenticated" });
       return;
     }
 
@@ -189,7 +208,11 @@ export function restrictTo(...roles: string[]) {
     const roleName = req.user.roleName;
 
     if (!roleName || !roles.includes(roleName)) {
-      res.status(403).json({ message: 'You do not have permission to perform this action.' });
+      res
+        .status(403)
+        .json({
+          message: "You do not have permission to perform this action.",
+        });
       return;
     }
 
@@ -200,10 +223,17 @@ export function restrictTo(...roles: string[]) {
 // ─── requireOwner ─────────────────────────────────────────────────────────────
 
 /** Gate to company owner (billing / CEO contact). Must come after protect(). */
-export function requireOwner(req: Request, res: Response, next: NextFunction): void {
-  if (!req.user) { res.status(401).json({ message: 'Unauthenticated' }); return; }
+export function requireOwner(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (!req.user) {
+    res.status(401).json({ message: "Unauthenticated" });
+    return;
+  }
   if (!req.user.isOwner && !req.user.isSuperAdmin) {
-    res.status(403).json({ message: 'Owner access required' });
+    res.status(403).json({ message: "Owner access required" });
     return;
   }
   next();
@@ -212,9 +242,13 @@ export function requireOwner(req: Request, res: Response, next: NextFunction): v
 // ─── requireSuperAdmin ────────────────────────────────────────────────────────
 
 /** Gate to platform super_admin only. Must come after protect(). */
-export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+export function requireSuperAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (!req.user?.isSuperAdmin) {
-    res.status(403).json({ message: 'Super-admin access required' });
+    res.status(403).json({ message: "Super-admin access required" });
     return;
   }
   next();

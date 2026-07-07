@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
+import { z } from 'zod';
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth();
@@ -26,10 +27,20 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (!email || !password) {
-      setError('Please fill in all fields.');
-      return;
+
+    const loginSchema = z.object({
+      email: z.string().email('Please enter a valid email address'),
+      password: z.string().min(8, 'Password must be at least 8 characters'),
+    });
+
+    try {
+      loginSchema.parse({ email, password });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const errorMessages = err.errors.map((e) => e.message).join(', ');
+        setError(errorMessages);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -38,7 +49,7 @@ export default function LoginPage() {
       if (!result.success) {
         setError(result.error || 'Invalid credentials.');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);

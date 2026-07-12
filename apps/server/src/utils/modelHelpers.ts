@@ -1,12 +1,16 @@
 import crypto from "crypto";
 import type { User, Lead, Client } from "@repo/db";
 
-export function toSafeUserJSON(user: User) {
+export function toSafeUserJSON(
+  user: User,
+): Omit<User, "passwordHash" | "refreshTokenHash"> {
   const { passwordHash, refreshTokenHash, ...safe } = user;
   return safe;
 }
 
-export function toSafeLeadJSON(lead: Lead) {
+export function toSafeLeadJSON(
+  lead: Lead,
+): Omit<Lead, "email" | "phone" | "notes"> {
   const { email, phone, notes, ...safe } = lead;
   return safe;
 }

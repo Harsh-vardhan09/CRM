@@ -7,6 +7,47 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserStatus {
+  active
+  pending
+  rejected
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  email        String  @unique @db.VarChar(320)
+  passwordHash String  @db.VarChar(72)
+  name         String  @db.VarChar(255)
+  avatar       String? @db.VarChar(500)
+  status       UserStatus @default(pending)
+
+  companyId    Int?
+  roleId       Int?
+  isOwner      Boolean @default(false)
+  isSuperAdmin Boolean @default(false)
+
+  refreshTokenHash String? @db.Char(64)
+
+  lastLoginAt DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company      Company? @relation(fields: [companyId], references: [id])
+  role         Role?    @relation(fields: [roleId],    references: [id])
+  ownedClients Client[] @relation("ClientOwner")
+  ownedLeads   Lead[]   @relation("LeadOwner")
+
+  @@index([companyId, roleId])
+  @@index([companyId])
+  @@map("users")
+}
+
+
+enum CompanyStatus {
+  active
+  suspended
+}
 model Company {
   id     Int           @id @default(autoincrement())
   name   String        @db.VarChar(255)
@@ -20,9 +61,23 @@ model Company {
   @@map("companies")
 }
 
-enum CompanyStatus {
-  active
-  suspended
+
+model RolePermission {
+  roleId      Int
+  featureId   Int
+  accessLevel AccessLevel
+
+  role    Role    @relation(fields: [roleId],    references: [id])
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([roleId, featureId])
+  @@map("role_permissions")
+}
+
+enum AccessLevel {
+  read
+  write
+  full
 }
 
 model Role {
@@ -62,59 +117,8 @@ model CompanyFeature {
   @@map("company_features")
 }
 
-model RolePermission {
-  roleId      Int
-  featureId   Int
-  accessLevel AccessLevel
 
-  role    Role    @relation(fields: [roleId],    references: [id])
-  feature Feature @relation(fields: [featureId], references: [id])
 
-  @@id([roleId, featureId])
-  @@map("role_permissions")
-}
-
-enum AccessLevel {
-  read
-  write
-  full
-}
-
-enum UserStatus {
-  active
-  pending
-  rejected
-}
-
-model User {
-  id           Int     @id @default(autoincrement())
-  email        String  @unique @db.VarChar(320)
-  passwordHash String  @db.VarChar(72)
-  name         String  @db.VarChar(255)
-  avatar       String? @db.VarChar(500)
-  status       UserStatus @default(pending)
-
-  companyId    Int?
-  roleId       Int?
-  isOwner      Boolean @default(false)
-  isSuperAdmin Boolean @default(false)
-
-  refreshTokenHash String? @db.Char(64)
-
-  lastLoginAt DateTime?
-  deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  company      Company? @relation(fields: [companyId], references: [id])
-  role         Role?    @relation(fields: [roleId],    references: [id])
-  ownedClients Client[] @relation("ClientOwner")
-  ownedLeads   Lead[]   @relation("LeadOwner")
-
-  @@index([companyId, roleId])
-  @@index([companyId])
-  @@map("users")
-}
 
 model Client {
   id            Int      @id @default(autoincrement())

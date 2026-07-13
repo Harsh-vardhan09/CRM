@@ -28,11 +28,11 @@ Unlike traditional no-code CRMs, Twenty is explicitly designed to be **built, sh
 
 # Core Value Proposition
 
-* Full ownership of data and infrastructure through self-hosting options.
-* CRM logic defined as code — objects, fields, views, and workflows live in version control.
-* An extension system (**Apps**) that allows developers to add custom functionality without forking the core product.
-* Modern, well-designed UI with AI agent integration built in from the ground up.
-* Open-source under **AGPL-3.0**, with an optional commercial Enterprise license.
+- Full ownership of data and infrastructure through self-hosting options.
+- CRM logic defined as code — objects, fields, views, and workflows live in version control.
+- An extension system (**Apps**) that allows developers to add custom functionality without forking the core product.
+- Modern, well-designed UI with AI agent integration built in from the ground up.
+- Open-source under **AGPL-3.0**, with an optional commercial Enterprise license.
 
 ---
 
@@ -62,32 +62,32 @@ Twenty uses a **TypeScript-everywhere** approach. The same language runs on both
 
 ### NestJS
 
-* Provides a highly structured backend.
-* Supports modules, guards, interceptors, and decorators.
-* Helps large codebases remain maintainable as they scale.
+- Provides a highly structured backend.
+- Supports modules, guards, interceptors, and decorators.
+- Helps large codebases remain maintainable as they scale.
 
 ### GraphQL Code-First
 
-* TypeScript types are the source of truth.
-* Schema is generated automatically from decorators.
-* Eliminates the need to maintain separate schema files.
+- TypeScript types are the source of truth.
+- Schema is generated automatically from decorators.
+- Eliminates the need to maintain separate schema files.
 
 ### Linaria
 
-* Produces zero-runtime CSS.
-* Extracts styles during build time.
-* Avoids runtime style injection overhead.
+- Produces zero-runtime CSS.
+- Extracts styles during build time.
+- Avoids runtime style injection overhead.
 
 ### Jotai
 
-* Atomic state model.
-* Less boilerplate than Redux.
-* Predictable and easy to test.
+- Atomic state model.
+- Less boilerplate than Redux.
+- Predictable and easy to test.
 
 ### Nx
 
-* Enables incremental builds and test execution.
-* Only affected packages are rebuilt or tested.
+- Enables incremental builds and test execution.
+- Only affected packages are rebuilt or tested.
 
 ---
 
@@ -95,10 +95,10 @@ Twenty uses a **TypeScript-everywhere** approach. The same language runs on both
 
 The entire Twenty codebase lives in a single **Nx-managed monorepo**. All packages share:
 
-* `node_modules`
-* Base TypeScript configuration
-* Linting rules
-* CI/CD pipeline
+- `node_modules`
+- Base TypeScript configuration
+- Linting rules
+- CI/CD pipeline
 
 Changes to shared packages automatically trigger rebuilds of dependent packages.
 
@@ -144,11 +144,11 @@ The frontend is a **React 18 Single Page Application (SPA)** built with **Vite**
 
 ### Key Technologies
 
-* React 18
-* Apollo Client
-* GraphQL
-* Jotai
-* Linaria
+- React 18
+- Apollo Client
+- GraphQL
+- Jotai
+- Linaria
 
 ---
 
@@ -158,9 +158,9 @@ Jotai uses an **atomic state model**. Instead of one large global store, state i
 
 ### Benefits
 
-* Components subscribe only to the state they need.
-* Reduced re-renders.
-* Improved performance and maintainability.
+- Components subscribe only to the state they need.
+- Reduced re-renders.
+- Improved performance and maintainability.
 
 | Pattern        | Usage                       |
 | -------------- | --------------------------- |
@@ -177,10 +177,10 @@ Linaria is a **zero-runtime CSS-in-JS** library.
 
 ### Characteristics
 
-* Styled-components-like API.
-* CSS extracted at build time.
-* No runtime style computation.
-* Performance equivalent to plain CSS.
+- Styled-components-like API.
+- CSS extracted at build time.
+- No runtime style computation.
+- Performance equivalent to plain CSS.
 
 ---
 
@@ -188,24 +188,23 @@ Linaria is a **zero-runtime CSS-in-JS** library.
 
 ### Standards
 
-* Functional components only.
-* Class components are forbidden.
-* Named exports only.
-* No default exports.
+- Functional components only.
+- Class components are forbidden.
+- Named exports only.
+- No default exports.
 
 ### Organization
 
-* Components should remain under 300 lines.
-* Larger components are split into smaller units.
-* Each component has:
-
-  * Its own directory
-  * Test file
-  * Storybook story
+- Components should remain under 300 lines.
+- Larger components are split into smaller units.
+- Each component has:
+  - Its own directory
+  - Test file
+  - Storybook story
 
 ### Imports
 
-* `index.ts` barrel exports provide clean import paths.
+- `index.ts` barrel exports provide clean import paths.
 
 ---
 
@@ -215,10 +214,10 @@ The backend is built with **NestJS**, a structured and opinionated Node.js frame
 
 ### Responsibilities
 
-* GraphQL API
-* Authentication
-* Business logic
-* Background workers
+- GraphQL API
+- Authentication
+- Business logic
+- Background workers
 
 ---
 
@@ -228,10 +227,10 @@ Each feature area is organized into a dedicated module.
 
 Examples:
 
-* Authentication
-* Workspaces
-* Objects
-* Emails
+- Authentication
+- Workspaces
+- Objects
+- Emails
 
 ### Example Module
 
@@ -246,10 +245,10 @@ export class UserModule {}
 
 ### Benefits
 
-* Clear boundaries
-* Dependency management
-* Reusable services
-* Scalable architecture
+- Clear boundaries
+- Dependency management
+- Reusable services
+- Scalable architecture
 
 ---
 
@@ -259,10 +258,10 @@ Twenty uses a **code-first GraphQL** architecture with **GraphQL Yoga**.
 
 ### How It Works
 
-* `@ObjectType()` → GraphQL Types
-* `@Query()` → GraphQL Queries
-* `@Mutation()` → GraphQL Mutations
-* Schema generated automatically
+- `@ObjectType()` → GraphQL Types
+- `@Query()` → GraphQL Queries
+- `@Mutation()` → GraphQL Mutations
+- Schema generated automatically
 
 ### Available Schemas
 
@@ -270,17 +269,17 @@ Twenty uses a **code-first GraphQL** architecture with **GraphQL Yoga**.
 
 Handles:
 
-* Users
-* Workspaces
-* CRM records
+- Users
+- Workspaces
+- CRM records
 
 #### Metadata API
 
 Handles:
 
-* Object definitions
-* Field definitions
-* Workspace metadata
+- Object definitions
+- Field definitions
+- Workspace metadata
 
 ---
 
@@ -300,9 +299,9 @@ Each workspace receives its own PostgreSQL schema.
 
 ### Benefits
 
-* Strong tenant isolation
-* Easier maintenance
-* Improved security boundaries
+- Strong tenant isolation
+- Easier maintenance
+- Improved security boundaries
 
 ---
 
@@ -312,10 +311,10 @@ Long-running tasks are executed asynchronously through **BullMQ** queues backed 
 
 ### Examples
 
-* Sending emails
-* Processing webhooks
-* Running sync jobs
-* External integrations
+- Sending emails
+- Processing webhooks
+- Running sync jobs
+- External integrations
 
 ### Architecture
 
@@ -331,9 +330,9 @@ API Server
 
 ### Benefits
 
-* Faster API responses
-* Improved scalability
-* Better fault isolation
+- Faster API responses
+- Improved scalability
+- Better fault isolation
 
 ---
 
@@ -355,12 +354,12 @@ API Server
 
 Twenty is an **open-source, developer-first CRM platform** built around:
 
-* TypeScript everywhere
-* React + NestJS architecture
-* GraphQL code-first APIs
-* PostgreSQL multi-tenancy
-* BullMQ background processing
-* Nx-powered monorepo development
-* Version-controlled CRM customization
+- TypeScript everywhere
+- React + NestJS architecture
+- GraphQL code-first APIs
+- PostgreSQL multi-tenancy
+- BullMQ background processing
+- Nx-powered monorepo development
+- Version-controlled CRM customization
 
 Its primary goal is to enable organizations to treat CRM development the same way they treat application development: **code-driven, extensible, self-hostable, and version-controlled**.

@@ -7,11 +7,13 @@
 5. Reporting and analytics
 
 ### Specifics:-
+
 - Platform Connectivity
 - Automation for CRON jobs and work
 - Specific CRM based on the company
 
 ## NON-FUNCTIONAL Requirements:-
+
 1. Security
 2. Performance
 3. 24/7 uptime
@@ -34,13 +36,12 @@
 | Real-time        | webSockets/socket.io     | In-app notifications                          |
 | Monorepo         | Turborepo + pnpm         | Shared code, parallel builds, caching         |
 
-
 ![[/public/req.png|100%]]
 
 ## Classes and ROLES
 
 - Super admin
-- Admin 
+- Admin
 - Saled rep
 - leads
 
@@ -56,43 +57,41 @@
 
 All frontend data operations use the GraphQL API. Key query and mutation categories:
 
-|   |   |   |
-|---|---|---|
-|**Category**|**Operations**|**Auth required**|
-|Auth|login, logout, refreshToken|No (login); Yes (logout, refresh)|
-|Users|me, users, createUser, updateUser, deleteUser|Yes — Admin+|
-|Leads|leads, lead, createLead, updateLead, deleteLead, importLeads|Yes — scoped to org|
-|Deals|deals, deal, createDeal, updateDeal, moveDeal, deleteDeal|Yes — scoped to org|
-|Workflows|workflows, createWorkflow, updateWorkflow, toggleWorkflow|Yes — Admin+|
-|Activities|activities, createActivity, completeActivity|Yes — Sales Rep+|
-|Dashboard|dashboardStats, pipelineMetrics|Yes — scoped to org|
-|Organisations|organisations, createOrg, updateOrg|Yes — Super Admin only|
+|               |                                                              |                                   |
+| ------------- | ------------------------------------------------------------ | --------------------------------- |
+| **Category**  | **Operations**                                               | **Auth required**                 |
+| Auth          | login, logout, refreshToken                                  | No (login); Yes (logout, refresh) |
+| Users         | me, users, createUser, updateUser, deleteUser                | Yes — Admin+                      |
+| Leads         | leads, lead, createLead, updateLead, deleteLead, importLeads | Yes — scoped to org               |
+| Deals         | deals, deal, createDeal, updateDeal, moveDeal, deleteDeal    | Yes — scoped to org               |
+| Workflows     | workflows, createWorkflow, updateWorkflow, toggleWorkflow    | Yes — Admin+                      |
+| Activities    | activities, createActivity, completeActivity                 | Yes — Sales Rep+                  |
+| Dashboard     | dashboardStats, pipelineMetrics                              | Yes — scoped to org               |
+| Organisations | organisations, createOrg, updateOrg                          | Yes — Super Admin only            |
 
 ### REST API (Secondary)
 
-|   |   |   |
-|---|---|---|
-|**Method**|**Endpoint**|**Description**|
-|POST|/auth/login|Email/password login — returns JWT tokens|
-|POST|/auth/refresh|Exchange refresh token for new access token|
-|POST|/auth/logout|Invalidate refresh token|
-|POST|/webhooks/lead|Inbound lead from third-party (HMAC verified)|
-|POST|/webhooks/email|SendGrid event webhook (open, click, bounce)|
-|POST|/uploads/avatar|Multipart file upload for user avatar|
-|GET|/health|System health check (unauthenticated)|
+|            |                 |                                               |
+| ---------- | --------------- | --------------------------------------------- |
+| **Method** | **Endpoint**    | **Description**                               |
+| POST       | /auth/login     | Email/password login — returns JWT tokens     |
+| POST       | /auth/refresh   | Exchange refresh token for new access token   |
+| POST       | /auth/logout    | Invalidate refresh token                      |
+| POST       | /webhooks/lead  | Inbound lead from third-party (HMAC verified) |
+| POST       | /webhooks/email | SendGrid event webhook (open, click, bounce)  |
+| POST       | /uploads/avatar | Multipart file upload for user avatar         |
+| GET        | /health         | System health check (unauthenticated)         |
 
-  
-
-##  Security Requirements
+## Security Requirements
 
 - JWT access tokens shall be signed with RS256 (asymmetric) in production
 
--  HttpOnly, SameSite=Strict cookies shall be used for token storage
+- HttpOnly, SameSite=Strict cookies shall be used for token storage
 
--  All passwords shall be hashed with bcrypt; plaintext passwords shall never be logged or stored
+- All passwords shall be hashed with bcrypt; plaintext passwords shall never be logged or stored
 
- - MongoDB connection strings, Redis URIs, RabbitMQ URIs, and API keys shall be stored as environment variables only
- 
+- MongoDB connection strings, Redis URIs, RabbitMQ URIs, and API keys shall be stored as environment variables only
+
 - CORS shall be configured to allow only explicitly listed origins
 
 - GraphQL introspection shall be disabled in production
@@ -104,6 +103,7 @@ All frontend data operations use the GraphQL API. Key query and mutation categor
 - Webhook payloads shall be verified via HMAC-SHA256 signature header
 
 - Personal data (email, phone) shall be treated as PII; access shall be logged
+
 ## Deployment and DevOps
 
 ## Environments
@@ -126,7 +126,7 @@ All frontend data operations use the GraphQL API. Key query and mutation categor
 
 ## TESTs:-
 
-- system tests 
+- system tests
 - unit test for each functions
 - test for API GRAPHQL AND REST API
 - CI/CD pipeline (GitHub Actions) shall run unit and integration tests on every pull request

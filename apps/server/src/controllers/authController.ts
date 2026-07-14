@@ -72,7 +72,7 @@ export const signUpCompany = async (
       });
 
       // 3. Create a default "Sales Rep" role for future employees
-      await tx.role.create({
+      const salesRole = await tx.role.create({
         data: {
           companyId: company.id,
           name: "Sales Rep",
@@ -92,6 +92,35 @@ export const signUpCompany = async (
           status: "active",
         },
       });
+
+      // 5. Seed Features and Permissions
+      const features = await tx.feature.findMany();
+      if (features.length > 0) {
+        await tx.companyFeature.createMany({
+          data: features.map((f: any) => ({ companyId: company.id, featureId: f.id }))
+        });
+
+        await tx.rolePermission.createMany({
+          data: features.map((f: any) => ({ roleId: adminRole.id, featureId: f.id, accessLevel: "full" }))
+        });
+
+        const salesPerms = [
+          { code: "leads_management", level: "write" },
+          { code: "analytics", level: "read" },
+          { code: "automations", level: "read" },
+          { code: "settings", level: "read" },
+          { code: "feature_support", level: "write" }
+        ];
+
+        const salesData = salesPerms.map(sp => {
+          const f = features.find((feat: any) => feat.code === sp.code);
+          return f ? { roleId: salesRole.id, featureId: f.id, accessLevel: sp.level } : null;
+        }).filter(Boolean);
+
+        if (salesData.length > 0) {
+          await tx.rolePermission.createMany({ data: salesData });
+        }
+      }
 
       return { company, user, adminRole };
     });
@@ -415,7 +444,7 @@ export const getMe = async (
         email: req.user.email,
         name: req.user.name,
         avatar: req.user.avatar,
-        role: null,
+        role: req.user.roleName || null,
         isOwner: req.user.isOwner,
         isSuperAdmin: req.user.isSuperAdmin,
         companyId: req.user.companyId,

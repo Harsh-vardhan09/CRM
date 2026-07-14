@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/workers/inboundemailworker.ts","./src/workers/outboundemailworker.ts","./src/workers/whatsappworker.ts"],"version":"6.0.3"}

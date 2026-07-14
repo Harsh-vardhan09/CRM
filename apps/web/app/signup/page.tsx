@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { z } from 'zod';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"company" | "employee">("company");
+  const [activeTab, setActiveTab] = useState<'company' | 'employee'>('company');
 
   // Form state
-  const [companyName, setCompanyName] = useState("");
-  const [companyId, setCompanyId] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [companyName, setCompanyName] = useState('');
+  const [companyId, setCompanyId] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Status state
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +23,36 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
+
+    // Zod validation schemas
+    const baseSchema = z.object({
+      name: z.string().min(2, 'Name must be at least 2 characters'),
+      email: z.string().email('Please enter a valid email address'),
+      password: z.string().min(8, 'Password must be at least 8 characters').max(100, 'Password is too long'),
+    });
+
+    try {
+      if (activeTab === 'company') {
+        const companySchema = baseSchema.extend({
+          companyName: z.string().min(2, 'Company Name must be at least 2 characters'),
+        });
+        companySchema.parse({ name, email, password, companyName });
+      } else {
+        const employeeSchema = baseSchema.extend({
+          companyId: z.number().int().positive('Company ID must be a positive integer'),
+        });
+        employeeSchema.parse({ name, email, password, companyId: Number(companyId) });
+      }
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const errorMessages = err.errors.map((e) => e.message).join(', ');
+        setError(errorMessages);
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -56,11 +85,11 @@ export default function SignupPage() {
       } else {
         if (activeTab === "company") {
           // Redirect the CEO to the admin panel
-          router.push("/admin/join-requests");
+          router.push("/admin");
         } else {
           setSuccess(
             data.message ||
-              "Your request was submitted and is awaiting approval.",
+            "Your request was submitted and is awaiting approval.",
           );
           // Clear form on success
           setCompanyName("");
@@ -70,8 +99,8 @@ export default function SignupPage() {
           setPassword("");
         }
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again later.");
+    } catch {
+      setError('An unexpected error occurred. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -110,35 +139,26 @@ export default function SignupPage() {
 
         {/* Glassmorphic Card */}
         <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+
           {/* Tabs */}
           <div className="flex p-1 space-x-1 bg-slate-950/50 rounded-xl mb-6">
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("company");
-                setError("");
-                setSuccess("");
-              }}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${
-                activeTab === "company"
-                  ? "bg-indigo-500 text-white shadow"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
+              onClick={() => { setActiveTab('company'); setError(''); setSuccess(''); }}
+              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === 'company'
+                ? 'bg-indigo-500 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
             >
               New Company
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("employee");
-                setError("");
-                setSuccess("");
-              }}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${
-                activeTab === "employee"
-                  ? "bg-violet-500 text-white shadow"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-              }`}
+              onClick={() => { setActiveTab('employee'); setError(''); setSuccess(''); }}
+              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === 'employee'
+                ? 'bg-violet-500 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
             >
               Join Company
             </button>
@@ -150,6 +170,7 @@ export default function SignupPage() {
                 {error}
               </div>
             )}
+
 
             {success && (
               <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">

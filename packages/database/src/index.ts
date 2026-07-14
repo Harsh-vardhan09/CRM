@@ -12,7 +12,7 @@ import crypto from "crypto";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
-import type { User } from "../generated/prisma/index.js";
+import type { User } from "../generated/prisma/client.js";
 
 // ─── Soft-delete extension ────────────────────────────────────────────────────
 
@@ -60,7 +60,6 @@ const adapter = new PrismaPg(pool);
 const base = new PrismaClient({ adapter });
 
 export const prisma = base.$extends(softDeleteExtension);
-export type DBClient = typeof prisma;
 
 export const connectDB = async (): Promise<void> => {
   try {
@@ -72,16 +71,16 @@ export const connectDB = async (): Promise<void> => {
   }
 };
 
-// import * as PrismaExports from "../generated/prisma/index.js";
+import * as PrismaExports from "../generated/prisma/client.js";
 
-import type { AccessLevel } from "../generated/prisma/index.js";
+import type { AccessLevel } from "../generated/prisma/client.js";
 
 const LEVEL_RANK: Record<AccessLevel, number> = { read: 1, write: 2, full: 3 };
 
 // ─── Permission helpers ───────────────────────────────────────────────────────
 
 export async function getRolePermissions(
-  prismaClient: DBClient,
+  prismaClient: PrismaClient,
   roleId: number,
 ): Promise<Record<string, AccessLevel>> {
   const perms = await prismaClient.rolePermission.findMany({
@@ -94,7 +93,7 @@ export async function getRolePermissions(
 }
 
 export async function hasPermission(
-  prismaClient: DBClient,
+  prismaClient: PrismaClient,
   roleId: number | null | undefined,
   featureCode: string,
   required: AccessLevel = "read",
@@ -164,4 +163,14 @@ export type {
   Company,
   AccessLevel,
   Lead,
-} from "../generated/prisma/index.js";
+  UserStatus,
+  LeadStatus,
+  LeadPriority,
+  Ticket,
+  Integration,
+  Message,
+  IntegrationType,
+  MessageDirection,
+  MessageChannel,
+  CompanyStatus
+} from "../generated/prisma/client.js";

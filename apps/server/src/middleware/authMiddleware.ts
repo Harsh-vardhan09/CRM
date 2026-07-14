@@ -119,7 +119,7 @@ export async function protect(
       // Super admins bypass all feature gates, so permissions map can be empty
       permissions = {};
     } else if (user.roleId) {
-      permissions = await getRolePermissions(prisma, user.roleId);
+      permissions = await getRolePermissions(prisma as any, user.roleId);
     }
 
     // 5. Attach to request
@@ -247,4 +247,30 @@ export function requireSuperAdmin(
     return;
   }
   next();
+}
+
+// ─── requireAdminOrOwner ──────────────────────────────────────────────────────
+
+/** Gate to users who are either the organization owner, or have the 'Admin' role */
+export function requireAdminOrOwner(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (!req.user) {
+    res.status(401).json({ message: "Unauthenticated" });
+    return;
+  }
+  
+  if (req.user.isSuperAdmin) {
+    next();
+    return;
+  }
+
+  if (req.user.isOwner || req.user.roleName === "Admin") {
+    next();
+    return;
+  }
+
+  res.status(403).json({ message: "Administrator or Owner access required" });
 }

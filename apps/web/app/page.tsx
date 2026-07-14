@@ -12,7 +12,7 @@ export default function Home() {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else if (user.role === "admin" || user.role === "super_admin") {
+      } else if (user.role?.toLowerCase() === "admin" || user.role?.toLowerCase() === "super_admin") {
         router.push("/admin");
       } else {
         router.push("/user");

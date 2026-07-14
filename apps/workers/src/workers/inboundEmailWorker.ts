@@ -1,6 +1,16 @@
 import { Worker } from 'bullmq';
 import { prisma } from '@repo/db';
 import 'dotenv/config';
+import { URL } from 'url';
+
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const parsedUrl = new URL(redisUrl);
+const redisConnection = {
+  host: parsedUrl.hostname,
+  port: parseInt(parsedUrl.port || '6379'),
+  password: parsedUrl.password || undefined,
+  maxRetriesPerRequest: null,
+};
 
 export const inboundEmailWorker = new Worker(
   'inboundEmailQueue',
@@ -56,10 +66,7 @@ export const inboundEmailWorker = new Worker(
     }
   },
   {
-    connection: {
-      host: '127.0.0.1',
-      port: 6379
-    }
+    connection: redisConnection
   }
 );
 

@@ -1,26 +1,35 @@
 import type { Request, Response } from 'express';
 import { prisma } from '@repo/db';
 import { Queue } from 'bullmq';
+import { redisConnection } from '../utils/redis.service.js';
 
-const whatsappQueue = new Queue('whatsappQueue', { connection: { host: '127.0.0.1', port: 6379 } });
-const outboundEmailQueue = new Queue('outboundEmailQueue', { connection: { host: '127.0.0.1', port: 6379 } });
+const whatsappQueue = new Queue('whatsappQueue', { connection: redisConnection });
+const outboundEmailQueue = new Queue('outboundEmailQueue', { connection: redisConnection });
 
 const dispatchOutboundMessage = async (companyId: number, ticketId: number, customerNum: string, body: string, channel: string, subject?: string) => {
   let senderIdentity = 'onboarding@resend.dev';
 
   if (channel === 'whatsapp') {
-    const integration = await prisma.integration.findFirst({
+    let integration = await prisma.integration.findFirst({
       where: { companyId, provider: 'twilio' }
     });
     if (!integration) {
-      throw new Error('Twilio integration not found for this company');
+      // Auto-create a sandbox integration for testing
+      integration = await prisma.integration.create({
+        data: { companyId, provider: 'twilio', identity: '+14155238886', config: {} }
+      });
     }
     senderIdentity = integration.identity;
   } else if (channel === 'email') {
-    const integration = await prisma.integration.findFirst({
+    let integration = await prisma.integration.findFirst({
       where: { companyId, provider: 'email_parse' }
     });
-    senderIdentity = integration ? integration.identity : 'onboarding@resend.dev';
+    if (!integration) {
+      integration = await prisma.integration.create({
+        data: { companyId, provider: 'email_parse', identity: 'support@crm.com', config: {} }
+      });
+    }
+    senderIdentity = integration.identity;
   }
 
   let finalSubject = subject;

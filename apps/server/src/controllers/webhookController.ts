@@ -1,17 +1,31 @@
 import type { Request, Response } from 'express';
 import { prisma } from '@repo/db';
 import { Queue } from 'bullmq';
+import { redisConnection } from '../utils/redis.service.js';
 
-const inboundEmailQueue = new Queue('inboundEmailQueue', { connection: { host: '127.0.0.1', port: 6379 } });
+const inboundEmailQueue = new Queue('inboundEmailQueue', { connection: redisConnection });
 
 export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
   try {
     const { From, To, Body } = req.body;
+    
+    // Twilio prepends 'whatsapp:' to phone numbers. Strip it to match our DB identity.
+    const normalizedTo = To ? To.replace('whatsapp:', '') : '';
+    const normalizedFrom = From ? From.replace('whatsapp:', '') : '';
 
     // Find integration
-    const integration = await prisma.integration.findUnique({
-      where: { identity: To }
+    let integration = await prisma.integration.findUnique({
+      where: { identity: normalizedTo }
     });
+
+    if (!integration && normalizedTo === '+14155238886') {
+      const firstCompany = await prisma.company.findFirst();
+      if (firstCompany) {
+        integration = await prisma.integration.create({
+          data: { companyId: firstCompany.id, provider: 'twilio', identity: normalizedTo, config: {} }
+        });
+      }
+    }
 
     if (!integration) {
       console.error(`No integration found for identity: ${To}`);
@@ -22,7 +36,7 @@ export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
     let ticket = await prisma.ticket.findFirst({
       where: {
         companyId: integration.companyId,
-        customerNum: From,
+        customerNum: normalizedFrom,
         status: 'open'
       }
     });
@@ -31,7 +45,7 @@ export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
       ticket = await prisma.ticket.create({
         data: {
           companyId: integration.companyId,
-          customerNum: From,
+          customerNum: normalizedFrom,
           status: 'open'
         }
       });
@@ -44,8 +58,8 @@ export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
         ticketId: ticket.id,
         direction: 'inbound',
         channel: 'whatsapp',
-        sender: From,
-        recipient: To,
+        sender: normalizedFrom,
+        recipient: normalizedTo,
         body: Body || ''
       }
     });

@@ -31,6 +31,9 @@ services:
         context: .
         dockerfile: Dockerfile
       restart: unless-stopped
+      env_file:
+        - apps/server/.env
+        - apps/workers/.env
       environment:
         - POSTGRES_HOST=db
         - POSTGRES_PORT=5432

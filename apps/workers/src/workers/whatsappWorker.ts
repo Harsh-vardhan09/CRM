@@ -1,10 +1,15 @@
 import { Worker } from 'bullmq';
-import { Redis } from 'ioredis';
+import { URL } from 'url';
 import twilio from 'twilio';
 
-const redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const parsedUrl = new URL(redisUrl);
+const redisConnection = {
+  host: parsedUrl.hostname,
+  port: parseInt(parsedUrl.port || '6379'),
+  password: parsedUrl.password || undefined,
   maxRetriesPerRequest: null,
-});
+};
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -39,7 +44,7 @@ export const whatsappWorker = new Worker(
       throw error; // Let BullMQ retry
     }
   },
-  { connection: redisClient as any }
+  { connection: redisConnection }
 );
 
 whatsappWorker.on('completed', (job) => {

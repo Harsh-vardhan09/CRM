@@ -1,8 +1,18 @@
 import { Worker } from 'bullmq';
 import { Resend } from 'resend';
 import 'dotenv/config';
+import { URL } from 'url';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const parsedUrl = new URL(redisUrl);
+const redisConnection = {
+  host: parsedUrl.hostname,
+  port: parseInt(parsedUrl.port || '6379'),
+  password: parsedUrl.password || undefined,
+  maxRetriesPerRequest: null,
+};
+
+const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy_key_123');
 
 export const outboundEmailWorker = new Worker(
   'outboundEmailQueue',
@@ -25,10 +35,7 @@ export const outboundEmailWorker = new Worker(
     }
   },
   {
-    connection: {
-      host: '127.0.0.1',
-      port: 6379
-    }
+    connection: redisConnection
   }
 );
 

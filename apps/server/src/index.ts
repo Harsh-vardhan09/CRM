@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { connectDB, prisma } from "@repo/db";
 import type { Client, AccessLevel } from "@repo/db";
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

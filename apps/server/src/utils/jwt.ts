@@ -50,21 +50,21 @@ try {
 
 export const signAccessToken = (payload: object): string => {
   return jwt.sign(payload, privateKey, {
-    algorithm: "HS256",
+    algorithm: "RS256",
     expiresIn: (process.env.JWT_ACCESS_EXPIRATION || "15m") as any,
   });
 };
 
 export const signRefreshToken = (payload: object): string => {
   return jwt.sign(payload, privateKey, {
-    algorithm: "HS256",
+    algorithm: "RS256",
     expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as any,
   });
 };
 
 export const verifyAccessToken = (token: string): any => {
   try {
-    return jwt.verify(token, publicKey, { algorithms: ["HS256"] });
+    return jwt.verify(token, publicKey, { algorithms: ["RS256"] });
   } catch (error) {
     return null;
   }
@@ -72,7 +72,7 @@ export const verifyAccessToken = (token: string): any => {
 
 export const verifyRefreshToken = (token: string): any => {
   try {
-    return jwt.verify(token, publicKey, { algorithms: ["HS256"] });
+    return jwt.verify(token, publicKey, { algorithms: ["RS256"] });
   } catch (error) {
     return null;
   }

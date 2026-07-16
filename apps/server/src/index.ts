@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

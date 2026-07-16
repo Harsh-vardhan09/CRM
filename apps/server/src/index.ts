@@ -4,15 +4,21 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
-import { connectDB, prisma } from "@repo/db";
-import type { Client, AccessLevel } from "@repo/db";
-import authRoutes from "./routes/authRoutes.js";
-import supportRoutes from "./routes/supportRoutes.js";
-import webhookRoutes from "./routes/webhookRoutes.js";
-import teamRoutes from "./routes/teamRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, "../../../env/root.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../env/server.env") });
+
+const { connectDB, prisma } = await import("@repo/db");
+const authRoutes = (await import("./routes/authRoutes.js")).default;
+const supportRoutes = (await import("./routes/supportRoutes.js")).default;
+const webhookRoutes = (await import("./routes/webhookRoutes.js")).default;
+const teamRoutes = (await import("./routes/teamRoutes.js")).default;
+const adminRoutes = (await import("./routes/adminRoutes.js")).default;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -68,8 +74,84 @@ const seedDatabase = async () => {
 
     const dbFeatures = await prisma.feature.findMany();
 
+    // 2. Seed a shared demo company + roles
+    let demoCompany = await prisma.company.findFirst({
+      where: { name: "Demo Company" },
+    });
+
+    if (!demoCompany) {
+      demoCompany = await prisma.company.create({
+        data: { name: "Demo Company", status: "active" },
+      });
+    }
+
+    const adminRole = await prisma.role.upsert({
+      where: { companyId_name: { companyId: demoCompany.id, name: "Admin" } },
+      update: {},
+      create: { companyId: demoCompany.id, name: "Admin" },
+    });
+
+    const salesRole = await prisma.role.upsert({
+      where: { companyId_name: { companyId: demoCompany.id, name: "Sales Rep" } },
+      update: {},
+      create: { companyId: demoCompany.id, name: "Sales Rep" },
+    });
+
+    for (const feature of dbFeatures) {
+      await prisma.companyFeature.upsert({
+        where: { companyId_featureId: { companyId: demoCompany.id, featureId: feature.id } },
+        update: {},
+        create: { companyId: demoCompany.id, featureId: feature.id },
+      });
+    }
+
+    for (const feature of dbFeatures) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_featureId: { roleId: adminRole.id, featureId: feature.id } },
+        update: { accessLevel: "full" },
+        create: {
+          roleId: adminRole.id,
+          featureId: feature.id,
+          accessLevel: "full",
+        },
+      });
+    }
+
+    const salesPerms = [
+      { code: "leads_management", accessLevel: "write" },
+      { code: "analytics", accessLevel: "read" },
+      { code: "automations", accessLevel: "read" },
+      { code: "settings", accessLevel: "read" },
+      { code: "feature_support", accessLevel: "write" },
+    ];
+
+    for (const perm of salesPerms) {
+      const feature = dbFeatures.find((f) => f.code === perm.code);
+      if (!feature) continue;
+      await prisma.rolePermission.upsert({
+        where: { roleId_featureId: { roleId: salesRole.id, featureId: feature.id } },
+        update: { accessLevel: perm.accessLevel as any },
+        create: {
+          roleId: salesRole.id,
+          featureId: feature.id,
+          accessLevel: perm.accessLevel as any,
+        },
+      });
+    }
+
     // 6. Seed Users
-    const defaultUsers = [
+    type SeedUser = {
+      email: string;
+      password: string;
+      name: string;
+      isOwner: boolean;
+      isSuperAdmin: boolean;
+      roleId: number | null;
+      companyId: number | null;
+      status: "active" | "pending" | "rejected";
+    };
+
+    const defaultUsers: SeedUser[] = [
       {
         email: "superadmin@crm.com",
         password: "super123",
@@ -78,6 +160,27 @@ const seedDatabase = async () => {
         isSuperAdmin: true,
         roleId: null,
         companyId: null,
+        status: "active",
+      },
+      {
+        email: "admin@crm.com",
+        password: "admin123",
+        name: "Admin User",
+        isOwner: false,
+        isSuperAdmin: false,
+        roleId: adminRole.id,
+        companyId: demoCompany.id,
+        status: "active",
+      },
+      {
+        email: "sales@crm.com",
+        password: "sales123",
+        name: "Sales Rep User",
+        isOwner: false,
+        isSuperAdmin: false,
+        roleId: salesRole.id,
+        companyId: demoCompany.id,
+        status: "active",
       },
     ];
 
@@ -96,19 +199,24 @@ const seedDatabase = async () => {
             isSuperAdmin: cred.isSuperAdmin,
             roleId: cred.roleId,
             companyId: cred.companyId,
+            status: cred.status,
           },
         });
       } else {
-        const isCorrect = await bcrypt.compare(cred.password, u.passwordHash);
-        if (!isCorrect) {
-          console.log(
-            `Fixing corrupted/incorrect password hash for user: ${u.email}`,
-          );
+        const updates: Record<string, any> = {};
+        if (!(await bcrypt.compare(cred.password, u.passwordHash))) {
+          console.log(`Fixing corrupted/incorrect password hash for user: ${u.email}`);
           const salt = await bcrypt.genSalt(12);
-          const passwordHash = await bcrypt.hash(cred.password, salt);
+          updates.passwordHash = await bcrypt.hash(cred.password, salt);
+        }
+        if (u.status !== cred.status) updates.status = cred.status;
+        if (u.roleId !== cred.roleId) updates.roleId = cred.roleId;
+        if (u.companyId !== cred.companyId) updates.companyId = cred.companyId;
+        if (u.name !== cred.name) updates.name = cred.name;
+        if (Object.keys(updates).length > 0) {
           await prisma.user.update({
             where: { id: u.id },
-            data: { passwordHash },
+            data: updates,
           });
         }
       }

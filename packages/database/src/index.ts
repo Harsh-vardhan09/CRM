@@ -5,14 +5,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// .env is in packages/database/, one level up from src/
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../env/root.env") });
 
 import crypto from "crypto";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
-import type { User } from "../generated/prisma/client.js";
+import type { User } from "../generated/prisma/index.js";
 
 // ─── Soft-delete extension ────────────────────────────────────────────────────
 
@@ -71,9 +70,7 @@ export const connectDB = async (): Promise<void> => {
   }
 };
 
-import * as PrismaExports from "../generated/prisma/client.js";
-
-import type { AccessLevel } from "../generated/prisma/client.js";
+import type { AccessLevel } from "../generated/prisma/index.js";
 
 const LEVEL_RANK: Record<AccessLevel, number> = { read: 1, write: 2, full: 3 };
 
@@ -173,4 +170,4 @@ export type {
   MessageDirection,
   MessageChannel,
   CompanyStatus
-} from "../generated/prisma/client.js";
+} from "../generated/prisma/index.js";

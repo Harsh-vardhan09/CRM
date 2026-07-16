@@ -59,7 +59,7 @@ export async function protect(
       return;
     }
 
-    // 2. Verify signature + expiry (RS256)
+    // 2. Verify signature + expiry using the configured JWT algorithm
     const payload = verifyAccessToken(token);
     if (!payload?.id) {
       res.status(401).json({ message: "Invalid or expired token" });

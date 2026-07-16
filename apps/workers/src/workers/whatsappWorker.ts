@@ -1,8 +1,17 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import { Worker } from 'bullmq';
 import { URL } from 'url';
 import twilio from 'twilio';
 
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../../../../env/root.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../../env/worker.env') });
+
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
 const parsedUrl = new URL(redisUrl);
 const redisConnection = {
   host: parsedUrl.hostname,
@@ -11,14 +20,21 @@ const redisConnection = {
   maxRetriesPerRequest: null,
 };
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
 
 let twilioClient: twilio.Twilio | null = null;
-if (accountSid && authToken) {
-  twilioClient = twilio(accountSid, authToken);
+const hasValidTwilioConfig = Boolean(accountSid && authToken && !accountSid.includes('your_') && !authToken.includes('your_'));
+
+if (hasValidTwilioConfig) {
+  try {
+    twilioClient = twilio(accountSid, authToken);
+  } catch (error) {
+    console.warn('Twilio client initialization failed:', error);
+    twilioClient = null;
+  }
 } else {
-  console.warn('Twilio credentials not found in environment variables.');
+  console.warn('Twilio credentials not configured. WhatsApp worker will stay idle until valid credentials are provided.');
 }
 
 export const whatsappWorker = new Worker(

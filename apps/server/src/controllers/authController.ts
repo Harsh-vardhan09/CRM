@@ -48,6 +48,7 @@ export const signUpCompany = async (
         .json({ message: "A user with this email address already exists." });
       return;
     }
+    console.log(existingUser);
 
     // Hash the password manually
     const salt = await bcrypt.genSalt(10);

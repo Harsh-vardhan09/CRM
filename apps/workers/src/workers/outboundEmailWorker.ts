@@ -1,9 +1,17 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import { Worker } from 'bullmq';
 import { Resend } from 'resend';
-import 'dotenv/config';
 import { URL } from 'url';
 
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../../../../env/root.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../../env/worker.env') });
+
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
 const parsedUrl = new URL(redisUrl);
 const redisConnection = {
   host: parsedUrl.hostname,

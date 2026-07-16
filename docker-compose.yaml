@@ -29,11 +29,17 @@ services:
         dockerfile: Dockerfile
       restart: unless-stopped
       env_file:
-        - apps/server/.env
-        - apps/workers/.env
-        - env/server.env
+        - ./env/root.env
+        - ./env/server.env
+        - ./env/web.env
+        - ./env/worker.env
       environment:
-        - DATABASE_URL=postgresql://postgres:postgres@db:5432/crm?schema=public
+        - DATABASE_URL=${DATABASE_URL}
+        - POSTGRES_HOST=db
+        - POSTGRES_PORT=5432
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD= ${POSTGRES_PASSWORD}
+        - POSTGRES_DB=crm
         - REDIS_URL=redis://redis:6379
       ports:
         - "3000:3000"

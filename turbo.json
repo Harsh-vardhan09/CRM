@@ -4,7 +4,6 @@
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "REDIS_URL",
-    "PORT",
     "CLIENT_URL",
     "JWT_SECRET",
     "NODE_ENV"

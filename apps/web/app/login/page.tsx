@@ -1,45 +1,57 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
+import { z } from 'zod';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     // If already logged in, redirect away from login page
     if (!loading && user) {
-      if (user.role === "admin" || user.role === "super_admin") {
-        router.push("/admin");
+      if (user.role?.toLowerCase() === 'admin' || user.role?.toLowerCase() === 'super_admin') {
+        router.push('/admin');
       } else {
-        router.push("/user");
+        router.push('/user');
       }
     }
   }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
-    if (!email || !password) {
-      setError("Please fill in all fields.");
-      return;
+    const loginSchema = z.object({
+      email: z.string().email('Please enter a valid email address'),
+      password: z.string().min(8, 'Password must be at least 8 characters'),
+    });
+
+    try {
+      loginSchema.parse({ email, password });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const errorMessages = err.errors.map((e) => e.message).join(', ');
+        setError(errorMessages);
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
       const result = await login(email, password);
       if (!result.success) {
-        setError(result.error || "Invalid credentials.");
+        setError(result.error || 'Invalid credentials.');
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +60,7 @@ export default function LoginPage() {
   const handleFillCredentials = (demoEmail: string, demoPass: string) => {
     setEmail(demoEmail);
     setPassword(demoPass);
-    setError("");
+    setError('');
   };
 
   if (loading) {
@@ -71,18 +83,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30">
-            <svg
-              className="h-6 w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
+            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
@@ -103,10 +105,7 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-slate-300"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
                 Email Address
               </label>
               <div className="mt-1">
@@ -125,10 +124,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-slate-300"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
                 Password
               </label>
               <div className="mt-1">
@@ -152,7 +148,7 @@ export default function LoginPage() {
                 disabled={submitting}
                 className="group relative flex w-full justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:from-indigo-600 hover:to-violet-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50"
               >
-                {submitting ? "Signing in..." : "Sign In"}
+                {submitting ? 'Signing in...' : 'Sign In'}
               </button>
             </div>
           </form>
@@ -165,35 +161,35 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  handleFillCredentials("admin@crm.com", "admin123")
-                }
+                onClick={() => handleFillCredentials('admin@crm.com', 'admin123')}
                 className="flex items-center justify-between rounded-lg bg-slate-950/40 border border-slate-800/80 px-3 py-2 text-xs text-slate-300 transition hover:bg-indigo-500/10 hover:border-indigo-500/30 text-left"
               >
                 <div>
-                  <span className="font-semibold text-indigo-400">
-                    Admin Account:
-                  </span>{" "}
-                  admin@crm.com
+                  <span className="font-semibold text-indigo-400">Admin Account:</span> admin@crm.com
                 </div>
                 <span className="text-slate-500 font-mono">admin123</span>
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  handleFillCredentials("sales@crm.com", "sales123")
-                }
+                onClick={() => handleFillCredentials('sales@crm.com', 'sales123')}
                 className="flex items-center justify-between rounded-lg bg-slate-950/40 border border-slate-800/80 px-3 py-2 text-xs text-slate-300 transition hover:bg-indigo-500/10 hover:border-indigo-500/30 text-left"
               >
                 <div>
-                  <span className="font-semibold text-violet-400">
-                    Sales Rep:
-                  </span>{" "}
-                  sales@crm.com
+                  <span className="font-semibold text-violet-400">Sales Rep:</span> sales@crm.com
                 </div>
                 <span className="text-slate-500 font-mono">sales123</span>
               </button>
             </div>
+          </div>
+          
+          <div className="mt-6 text-center text-sm text-slate-400">
+            Don't have an account?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              Sign up here
+            </Link>
           </div>
         </div>
       </div>

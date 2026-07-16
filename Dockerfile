@@ -57,5 +57,5 @@ CMD sh -c '\
     pnpm --filter=@repo/db exec prisma db push --schema=./prisma/schema.prisma; \
     fi && \
     echo "Starting server + web + worker..." && \
-    exec pnpm turbo run start \
+    exec pnpm turbo run start --filter=server --filter=workers --filter=web \
     '

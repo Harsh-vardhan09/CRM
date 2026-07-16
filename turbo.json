@@ -1,6 +1,20 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "PORT",
+    "NODE_ENV",
+    "CLIENT_URL",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "JWT_ACCESS_EXPIRATION",
+    "JWT_REFRESH_EXPIRATION",
+    "JWT_PRIVATE_KEY",
+    "JWT_PUBLIC_KEY",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "RESEND_API_KEY",
+    "NEXT_PUBLIC_API_URL"
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "REDIS_URL",

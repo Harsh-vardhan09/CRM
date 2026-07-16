@@ -1,21 +1,17 @@
 import crypto from "crypto";
-import type { User, Lead, Client } from "@repo/db";
+import type { User, Lead, Client, UserStatus, LeadStatus, LeadPriority } from "@repo/db";
 
-export function toSafeUserJSON(
-  user: User,
-): Omit<User, "passwordHash" | "refreshTokenHash"> {
+export function toSafeUserJSON(user: User): Omit<User, "passwordHash" | "refreshTokenHash"> {
   const { passwordHash, refreshTokenHash, ...safe } = user;
   return safe;
 }
 
-export function toSafeLeadJSON(
-  lead: Lead,
-): Omit<Lead, "email" | "phone" | "notes"> {
+export function toSafeLeadJSON(lead: Lead): Omit<Lead, "email" | "phone" | "notes"> {
   const { email, phone, notes, ...safe } = lead;
   return safe;
 }
 
-export function toSafeClientJSON(client: Client) {
+export function toSafeClientJSON(client: Client): Omit<Client, "revenue" | "address" | "description"> {
   const { revenue, address, description, ...safe } = client;
   return safe;
 }

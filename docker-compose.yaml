@@ -29,6 +29,8 @@ services:
         dockerfile: Dockerfile
       restart: unless-stopped
       env_file:
+        - apps/server/.env
+        - apps/workers/.env
         - env/server.env
       environment:
         - DATABASE_URL=postgresql://postgres:postgres@db:5432/crm?schema=public

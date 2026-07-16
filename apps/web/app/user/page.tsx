@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 
 export default function UserPage() {
@@ -12,7 +13,7 @@ export default function UserPage() {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else if (user.role === "admin" || user.role === "super_admin") {
+      } else if (user.role?.toLowerCase() === "admin" || user.role?.toLowerCase() === "super_admin") {
         router.push("/admin"); // Redirect admins to admin page
       }
     }
@@ -21,8 +22,8 @@ export default function UserPage() {
   if (
     loading ||
     !user ||
-    user.role === "admin" ||
-    user.role === "super_admin"
+    user.role?.toLowerCase() === "admin" ||
+    user.role?.toLowerCase() === "super_admin"
   ) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
@@ -171,6 +172,23 @@ export default function UserPage() {
             </div>
           </div>
         </div>
+
+        {/* Modules Grid */}
+        <div className="mt-8 pt-8 space-y-6 border-t border-slate-800">
+          <h2 className="text-xl font-bold text-slate-200">Modules & Applications</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <Link href="/support" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-emerald-500/50 hover:shadow-emerald-500/20">
+                <div className="h-12 w-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">Support Inbox</h3>
+                <p className="text-sm text-slate-400 mt-2">View and reply to customer tickets across all channels.</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
       </div>
     </div>
   );

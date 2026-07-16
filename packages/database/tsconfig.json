@@ -2,23 +2,14 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ESNext",
-
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
     "strict": true,
-
-    "declaration": true,
-    "declarationMap": true,
-    "composite": true,
-
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
-
-    "types": ["node"]
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "prisma", "prisma.config.ts"]

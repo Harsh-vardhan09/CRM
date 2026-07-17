@@ -10,6 +10,10 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   getCompanyRoles,
+  updateMe,
+  updatePassword,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
 
@@ -19,6 +23,10 @@ router.post("/login", login);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/me", protect, getMe);
+router.patch("/me", protect, updateMe);
+router.patch("/me/password", protect, updatePassword);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 router.post("/signup/company", signUpCompany); // For CEO / Owner Signup
 router.post("/signup/employee", signUpEmployee); // For Sales Rep / Employee Signup

@@ -19,6 +19,10 @@ const supportRoutes = (await import("./routes/supportRoutes.js")).default;
 const webhookRoutes = (await import("./routes/webhookRoutes.js")).default;
 const teamRoutes = (await import("./routes/teamRoutes.js")).default;
 const adminRoutes = (await import("./routes/adminRoutes.js")).default;
+const clientRoutes = (await import("./routes/clientRoutes.js")).default;
+const leadRoutes = (await import("./routes/leadRoutes.js")).default;
+const dashboardRoutes = (await import("./routes/dashboardRoutes.js")).default;
+const automationRoutes = (await import("./routes/automationRoutes.js")).default;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +49,10 @@ app.use("/api/support", supportRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/leads", leadRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/automations", automationRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
@@ -62,6 +70,10 @@ const seedDatabase = async () => {
         description: "Global System and Organization Settings",
       },
       { code: "feature_support", description: "WhatsApp Ticketing and Support" },
+      { code: "clients", description: "Client/Account Management" },
+      { code: "admin", description: "Admin Panel and Company Management" },
+      { code: "roles", description: "Role and Permission Management" },
+      { code: "users", description: "User Account Management" },
     ];
 
     for (const feat of defaultFeatures) {
@@ -123,6 +135,7 @@ const seedDatabase = async () => {
       { code: "automations", accessLevel: "read" },
       { code: "settings", accessLevel: "read" },
       { code: "feature_support", accessLevel: "write" },
+      { code: "clients", accessLevel: "write" },
     ];
 
     for (const perm of salesPerms) {

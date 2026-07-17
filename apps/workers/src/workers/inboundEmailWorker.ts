@@ -53,7 +53,7 @@ export const inboundEmailWorker = new Worker(
         });
       }
 
-      // Save message
+      // Save message linked to ticket
       await prisma.message.create({
         data: {
           companyId: companyId,
@@ -63,10 +63,39 @@ export const inboundEmailWorker = new Worker(
           sender: sender,
           recipient: recipient,
           subject: subject,
-          body: body
+          body: body,
+          status: 'RECEIVED',
         }
       });
-      
+
+      // Also link to a Lead if one matches by email (best-effort, non-blocking)
+      try {
+        const matchedLead = await prisma.lead.findFirst({
+          where: { companyId, email: sender }
+        });
+        if (matchedLead) {
+          await prisma.message.create({
+            data: {
+              companyId,
+              leadId: matchedLead.id,
+              direction: 'inbound',
+              channel: 'email',
+              sender,
+              recipient,
+              subject: subject ?? null,
+              body,
+              status: 'RECEIVED',
+            }
+          });
+          await prisma.lead.update({
+            where: { id: matchedLead.id },
+            data: { lastInteractionAt: new Date(), lastChannel: 'EMAIL' }
+          });
+        }
+      } catch (leadErr) {
+        console.warn('Failed to link inbound email to lead:', leadErr);
+      }
+
       console.log(`Inbound email processed successfully for ticket ${ticket.id}`);
     } catch (error) {
       console.error(`Failed to process inbound email:`, error);

@@ -160,3 +160,54 @@ Developer - Deepanshu (Co-authored by Shubham)
 
 ---
 
+#### Date - 17/07/26
+
+Developer - Aarsh (Co-authored by Claude)
+
+**Package/App:**
+
+- packages/database
+- apps/server
+- apps/workers
+- apps/web
+
+**Changes Made (Module 3 — Dashboard Analytics & Automations):**
+
+- Added `Automation` Prisma model with `AutomationTrigger` (LEAD_INACTIVE) and `AutomationAction` (SEND_MESSAGE) enums; additive migration `20260717000003_add_automations_table`
+- Dashboard service with `Promise.all`-batched aggregate queries (no N+1): lead counts by status/priority/isActive, client count, open ticket count, message volume groupBy channel+direction for 7d/30d windows, recent activity feed
+- Dashboard routes at `GET /api/dashboard/stats` and `GET /api/dashboard/pipeline`, gated behind `checkPermission("analytics", "read")`
+- Automation CRUD at `/api/automations` (list/get/create/update/delete), gated behind `checkPermission("automations", <level>)`
+- Refactored `leadDecayWorker` from `$executeRaw` to `findMany + updateMany` so stale lead IDs are available; after marking leads inactive, worker now checks each company for enabled `LEAD_INACTIVE` automations and enqueues messages via the existing `leadMessageQueue` path
+- Frontend `/dashboard`: stat cards, pipeline funnel (leads by status), channel attribution (leads by originChannel), recent activity feed — all hand-rolled CSS bars, no charting library
+- Frontend `/automations`: list table with enable/disable toggle, delete, and create modal scoped to LEAD_INACTIVE trigger + SEND_MESSAGE action
+- Added Dashboard and Automations tiles to both `/admin` and `/user` module grids
+- Updated `SETUP.md` with "What's Implemented" summary for all modules
+
+**Files Modified:**
+
+- `packages/database/prisma/schema.prisma` — Automation model + enums + Company.automations relation
+- `packages/database/src/index.ts` — re-export Automation, AutomationTrigger, AutomationAction
+- `apps/server/src/index.ts` — mount dashboardRoutes + automationRoutes
+- `apps/workers/src/workers/leadDecayWorker.ts` — refactor + automation trigger logic
+- `apps/web/app/admin/page.tsx` — Dashboard + Automations tiles
+- `apps/web/app/user/page.tsx` — Dashboard + Automations tiles
+- `SETUP.md` — "What's Implemented" section
+
+**Files Created:**
+
+- `packages/database/prisma/migrations/20260717000003_add_automations_table/migration.sql`
+- `apps/server/src/services/dashboard.service.ts`
+- `apps/server/src/controllers/dashboardController.ts`
+- `apps/server/src/routes/dashboardRoutes.ts`
+- `apps/server/src/services/automation.service.ts`
+- `apps/server/src/controllers/automationController.ts`
+- `apps/server/src/routes/automationRoutes.ts`
+- `apps/web/app/dashboard/page.tsx`
+- `apps/web/app/automations/page.tsx`
+
+**Status:**
+
+- ✅ Completed
+
+---
+

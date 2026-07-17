@@ -163,11 +163,16 @@ export type {
   UserStatus,
   LeadStatus,
   LeadPriority,
+  LeadChannel,
   Ticket,
   Integration,
   Message,
+  MessageStatus,
   IntegrationType,
   MessageDirection,
   MessageChannel,
-  CompanyStatus
+  CompanyStatus,
+  Automation,
+  AutomationTrigger,
+  AutomationAction
 } from "../generated/prisma/index.js";

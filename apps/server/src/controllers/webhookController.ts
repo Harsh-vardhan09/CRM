@@ -51,7 +51,7 @@ export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
       });
     }
 
-    // Save message
+    // Save message linked to ticket
     await prisma.message.create({
       data: {
         companyId: integration.companyId,
@@ -60,9 +60,37 @@ export const handleIncomingWhatsApp = async (req: Request, res: Response) => {
         channel: 'whatsapp',
         sender: normalizedFrom,
         recipient: normalizedTo,
-        body: Body || ''
+        body: Body || '',
+        status: 'RECEIVED',
       }
     });
+
+    // Also link to a Lead if one matches by phone (best-effort, non-blocking)
+    try {
+      const matchedLead = await prisma.lead.findFirst({
+        where: { companyId: integration.companyId, phone: normalizedFrom }
+      });
+      if (matchedLead) {
+        await prisma.message.create({
+          data: {
+            companyId: integration.companyId,
+            leadId: matchedLead.id,
+            direction: 'inbound',
+            channel: 'whatsapp',
+            sender: normalizedFrom,
+            recipient: normalizedTo,
+            body: Body || '',
+            status: 'RECEIVED',
+          }
+        });
+        await prisma.lead.update({
+          where: { id: matchedLead.id },
+          data: { lastInteractionAt: new Date(), lastChannel: 'WHATSAPP' }
+        });
+      }
+    } catch (leadErr) {
+      console.warn('Failed to link WhatsApp message to lead:', leadErr);
+    }
 
     return res.status(200).send('<Response></Response>');
   } catch (error) {

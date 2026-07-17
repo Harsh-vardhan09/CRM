@@ -110,7 +110,8 @@ export const signUpCompany = async (
           { code: "analytics", level: "read" },
           { code: "automations", level: "read" },
           { code: "settings", level: "read" },
-          { code: "feature_support", level: "write" }
+          { code: "feature_support", level: "write" },
+          { code: "clients", level: "write" },
         ];
 
         const salesData = salesPerms.map(sp => {
@@ -585,5 +586,181 @@ export const getCompanyRoles = async (
   } catch (error) {
     console.error("getCompanyRoles error:", error);
     res.status(500).json({ message: "Error fetching roles." });
+  }
+};
+
+// ==========================================
+// 4. PROFILE / ACCOUNT SETTINGS ENDPOINTS
+// ==========================================
+
+export const updateMe = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Not authenticated." });
+      return;
+    }
+
+    const { name, avatar } = req.body;
+    const updateData: Record<string, any> = {};
+    if (name !== undefined) updateData.name = name;
+    if (avatar !== undefined) updateData.avatar = avatar;
+
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ message: "No updatable fields provided." });
+      return;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData,
+      select: { id: true, email: true, name: true, avatar: true },
+    });
+
+    res.status(200).json({ status: "success", user: updated });
+  } catch (error) {
+    console.error("updateMe error:", error);
+    res.status(500).json({ message: "Internal server error updating profile." });
+  }
+};
+
+export const updatePassword = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: "Not authenticated." });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: "currentPassword and newPassword are required." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ message: "New password must be at least 8 characters." });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ message: "Current password is incorrect." });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+    res.status(200).json({ status: "success", message: "Password updated successfully." });
+  } catch (error) {
+    console.error("updatePassword error:", error);
+    res.status(500).json({ message: "Internal server error updating password." });
+  }
+};
+
+// ==========================================
+// 5. FORGOT / RESET PASSWORD FLOW
+// ==========================================
+
+export const forgotPassword = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ message: "Email is required." });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always respond 200 to prevent email enumeration
+    if (!user) {
+      res.status(200).json({ status: "success", message: "If that email exists, a reset link has been sent." });
+      return;
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetTokenHash: tokenHash,
+        resetTokenExpiresAt: expiresAt,
+      },
+    });
+
+    // TODO: send via Resend once transactional email templates exist
+    console.log(`[FORGOT PASSWORD] Reset token for ${email}: ${rawToken}`);
+
+    res.status(200).json({ status: "success", message: "If that email exists, a reset link has been sent." });
+  } catch (error) {
+    console.error("forgotPassword error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const resetPassword = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      res.status(400).json({ message: "token and newPassword are required." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ message: "New password must be at least 8 characters." });
+      return;
+    }
+
+    const tokenHash = hashToken(token);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetTokenHash: tokenHash,
+        resetTokenExpiresAt: { gt: new Date() },
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      res.status(400).json({ message: "Reset token is invalid or has expired." });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetTokenHash: null,
+        resetTokenExpiresAt: null,
+        refreshTokenHash: null, // invalidate all sessions
+      },
+    });
+
+    res.status(200).json({ status: "success", message: "Password has been reset successfully." });
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 };

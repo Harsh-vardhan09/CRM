@@ -70,3 +70,38 @@ When the server starts for the first time on a fresh database, it will automatic
 | `admin@crm.com`      | `admin123` | `admin`       | Full workspace permissions    |
 | `sales@crm.com`      | `sales123` | `sales_rep`   | Scoped sales rep capabilities |
 | `superadmin@crm.com` | `super123` | `super_admin` | Full system access            |
+
+---
+
+## What's Implemented
+
+### Module 0 — Auth & RBAC
+- JWT-based authentication (RS256, 15-min access token + 7-day refresh token via HTTP-only cookies)
+- Feature-based RBAC: `Company → Role → RolePermission → Feature` hierarchy
+- Join request flow: sign-up puts users in `pending`; admins approve/reject from Team Management
+- Password reset flow (forgot-password email → `/reset-password?token=...`)
+- Account settings (update profile + change password at `/settings`)
+
+### Module 1 — Client/Account Management
+- Client CRUD at `/api/clients` with auto-generated `ACC-XXXXXX` account IDs
+- Frontend list (`/clients`) and detail page (`/clients/:id`) with inline editing
+- Company settings page for owners/super-admins (`/admin/company`)
+
+### Module 2 — Lead Management & Cross-Channel Messaging
+- Lead CRUD at `/api/leads` with status/priority/score/source fields
+- Cross-channel interaction timeline: send EMAIL/SMS/WhatsApp to a lead from the detail page
+- Incoming WhatsApp and email webhooks now auto-link messages to matching Leads by phone/email
+- BullMQ workers: `leadMessageWorker` (dispatches via Twilio/Resend), `leadDecayWorker` (daily job marks stale leads inactive)
+- Frontend: `/leads` list with filter chips, `/leads/:id` chat-bubble timeline with compose bar
+- `LEAD_INACTIVITY_DAYS` env var (default 14) controls the decay threshold
+
+### Module 3 — Dashboard Analytics & Automations
+- Analytics API at `/api/dashboard/stats` and `/api/dashboard/pipeline` (companyId-scoped aggregates, no N+1)
+- Frontend dashboard at `/dashboard`: stat cards, pipeline funnel bars, channel attribution bars, recent activity feed
+- Automation CRUD at `/api/automations` — trigger: `LEAD_INACTIVE`, action: `SEND_MESSAGE`
+- `leadDecayWorker` extended: after marking leads inactive, fires enabled `LEAD_INACTIVE` automations and enqueues messages through the existing `leadMessageQueue` path
+- Frontend automations page at `/automations`: list, enable/disable toggle, create modal
+
+### Support Inbox
+- Inbound WhatsApp and email tickets at `/support`
+- Send outbound messages from the ticket thread (BullMQ-backed, Twilio/Resend)

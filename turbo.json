@@ -14,7 +14,8 @@
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN",
     "RESEND_API_KEY",
-    "NEXT_PUBLIC_API_URL"
+    "NEXT_PUBLIC_API_URL",
+    "LEAD_INACTIVITY_DAYS"
   ],
   "globalPassThroughEnv": [
     "DATABASE_URL",

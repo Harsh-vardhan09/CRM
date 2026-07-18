@@ -1,2 +1,39 @@
 @import "tailwindcss";
 @import "@repo/ui/styles.css";
+
+:root {
+  /* Marginalia Colour Tokens */
+  --void:        #0A0B10;
+  --graphite:    #14151F;
+  --ink-violet:  #211A34;
+  --parchment:   #EDE6D6;
+  --teal:        #34E7C4;
+  --amber:       #F2A24C;
+  --coral:       #FF6355;
+  --plum:        #6B5B95;
+  --text-sec:    #A8A0B0;
+  --text-muted:  #6E6678;
+
+  /* Font stacks */
+  --font-display: var(--font-fraunces), "Fraunces", Georgia, serif;
+  --font-sans:    var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono:    var(--font-mono), "IBM Plex Mono", "Courier New", monospace;
+}
+
+/* Utility: display face */
+.font-display { font-family: var(--font-display); }
+.font-mono-data { font-family: var(--font-mono); }
+
+@keyframes trace-pulse {
+  0%, 100% { stroke-opacity: 0.08; }
+  50%       { stroke-opacity: 0.40; }
+}
+
+@keyframes node-breathe {
+  0%, 100% { r: 3px; fill-opacity: 0.4; }
+  50%       { r: 5px; fill-opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}

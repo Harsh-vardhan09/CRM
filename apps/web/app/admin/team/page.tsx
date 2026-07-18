@@ -1,300 +1,450 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Users, UserPlus, X, Settings2, CheckCircle2,
+  ChevronLeft, Loader2, Trash2, Mail,
+} from "lucide-react";
+import Link from "next/link";
 
-type Role = {
-  id: number;
-  name: string;
-};
-
-type User = {
+interface User {
   id: number;
   name: string;
   email: string;
+  roleId: number | null;
   status: string;
-  lastLoginAt: string | null;
-  role: {
-    id: number;
-    name: string;
-  } | null;
+  createdAt: string;
+}
+interface Role { id: number; name: string; }
+
+const PANEL = {
+  background: "rgba(237,230,214,0.025)",
+  border: "1px solid rgba(237,230,214,0.08)",
+};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+const INPUT_STYLE = {
+  background: "rgba(10,11,16,0.6)",
+  border: "1px solid rgba(237,230,214,0.08)",
+  color: "#EDE6D6",
+  fontFamily: "var(--font-inter), sans-serif",
 };
 
-export default function TeamManagementPage() {
-  const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorStatus, setErrorStatus] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
-  const [selectedRoleId, setSelectedRoleId] = useState<number | string>('');
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+export default function TeamPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  const API_BASE = 'http://localhost:5000/api';
+  const [users, setUsers]     = useState<User[]>([]);
+  const [roles, setRoles]     = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersRes, rolesRes] = await Promise.all([
-          fetch(`${API_BASE}/team/active`, { credentials: 'include' }),
-          fetch(`${API_BASE}/auth/company/roles`, { credentials: 'include' })
-        ]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", roleId: "" });
 
-        if (usersRes.status === 401 || usersRes.status === 403) {
-          setErrorStatus(usersRes.status);
-          setLoading(false);
-          return;
-        }
-
-        if (usersRes.ok && rolesRes.ok) {
-          const usersData = await usersRes.json();
-          const rolesData = await rolesRes.json();
-          setUsers(usersData);
-          setFilteredUsers(usersData);
-          setRoles(rolesData.data || []);
-        }
-      } catch (e) {
-        console.error('Error fetching team data:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const [editUser, setEditUser]   = useState<User | null>(null);
+  const [editRoleId, setEditRoleId] = useState<string>("");
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const lowerQuery = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter(u => 
-        u.name.toLowerCase().includes(lowerQuery) || 
-        u.email.toLowerCase().includes(lowerQuery)
-      ));
+    if (!loading) {
+      if (!user) router.push("/login");
+      else if (user.role?.toLowerCase() !== "admin" && !user.isSuperAdmin && user.role?.toLowerCase() !== "super_admin")
+        router.push("/admin");
+      else fetchData();
     }
-  }, [searchQuery, users]);
+  }, [user, loading, router]);
 
-  const handleSaveRole = async (userId: number) => {
-    setSavingId(userId);
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError("");
     try {
-      const res = await fetch(`${API_BASE}/team/users/${userId}/role`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ roleId: selectedRoleId === '' ? null : Number(selectedRoleId) })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        // Update local state
-        setUsers(users.map(u => u.id === userId ? { 
-          ...u, 
-          role: selectedRoleId === '' ? null : { id: Number(selectedRoleId), name: roles.find(r => r.id === Number(selectedRoleId))?.name || '' } 
-        } : u));
-        
-        setToastMessage({ type: 'success', text: 'Role updated successfully!' });
-        setEditingUserId(null);
-      } else {
-        const errorData = await res.json();
-        setToastMessage({ type: 'error', text: errorData.message || 'Failed to update role' });
-      }
-    } catch (e) {
-      setToastMessage({ type: 'error', text: 'An unexpected error occurred' });
+      const [usersRes, rolesRes] = await Promise.all([
+        fetch(`${API_URL}/admin/users`, { credentials: "include" }),
+        fetch(`${API_URL}/admin/roles`, { credentials: "include" }),
+      ]);
+      if (!usersRes.ok || !rolesRes.ok) throw new Error("Failed to fetch team data");
+      const usersData = await usersRes.json();
+      const rolesData = await rolesRes.json();
+      setUsers(usersData.data || []);
+      setRoles(rolesData.data || []);
+      if (rolesData.data?.length > 0)
+        setNewUser(prev => ({ ...prev, roleId: String(rolesData.data[0].id) }));
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
     } finally {
-      setSavingId(null);
-      setTimeout(() => setToastMessage(null), 3000);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUser.name || !newUser.email || !newUser.password || !newUser.roleId) return;
+    setError(""); setSuccess("");
+    try {
+      const res = await fetch(`${API_URL}/admin/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newUser.name, email: newUser.email, password: newUser.password, roleId: Number(newUser.roleId) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || "Failed to create user");
+      setSuccess("User created successfully");
+      setShowCreateModal(false);
+      setNewUser({ name: "", email: "", password: "", roleId: String(roles[0]?.id || "") });
+      fetchData();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) { setError(err.message); }
+  };
 
-  if (errorStatus === 401 || errorStatus === 403) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white shadow-xl rounded-2xl p-8 text-center border border-gray-100">
-          <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-500 mb-6">You must be an Administrator or Organization Owner to access Team Management.</p>
-          <Link href="/" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-            Return to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser || !editRoleId) return;
+    setError(""); setSuccess("");
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${editUser.id}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ roleId: Number(editRoleId) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || "Failed to update role");
+      setSuccess(`Role updated for ${editUser.name}`);
+      setEditUser(null);
+      fetchData();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) { setError(err.message); }
+  };
+
+  const handleDeleteUser = async (userId: number, userName: string) => {
+    if (!confirm(`Remove ${userName} from the organisation?`)) return;
+    setError(""); setSuccess("");
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${userId}`, { method: "DELETE", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || "Failed to delete user");
+      setSuccess(`${userName} removed`);
+      fetchData();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) { setError(err.message); }
+  };
+
+  const getRoleName = (roleId: number | null) => {
+    if (!roleId) return "No Role";
+    return roles.find(r => r.id === roleId)?.name.replace(/_/g, " ") || "Unknown";
+  };
+
+  if (loading || !user) return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0A0B10]">
+      <svg width="80" height="24" viewBox="0 0 80 24" fill="none">
+        <motion.path d="M4 12 L76 12" stroke="#34E7C4" strokeWidth="2" strokeLinecap="round"
+          initial={{ pathLength: 0 }} animate={{ pathLength: [0, 1, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
+      </svg>
+    </div>
+  );
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-200 py-10 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Decorative gradient backgrounds */}
-      <div className="absolute top-0 right-0 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl"></div>
+    <div className="min-h-screen relative overflow-hidden"
+      style={{ background: "linear-gradient(to bottom right, #14151F, #0A0B10, #211A34)" }}>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl border shadow-lg text-white font-medium flex items-center transform transition-all duration-300 ease-out ${
-          toastMessage.type === 'success' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-red-500/20 border-red-500/30 text-red-400'
-        }`}>
-          {toastMessage.type === 'success' ? (
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-          ) : (
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          )}
-          {toastMessage.text}
-        </div>
-      )}
+      {/* Grain */}
+      <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay pointer-events-none"
+        style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")" }} />
 
-      <div className="max-w-7xl mx-auto z-10 relative">
+      <div className="max-w-6xl mx-auto p-6 md:p-12 relative z-10">
+
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <Link href="/" className="inline-flex items-center text-sm font-medium text-indigo-400 hover:text-indigo-300 mb-4 transition-colors">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-100 to-indigo-400 bg-clip-text text-transparent tracking-tight">Team Management</h1>
-            <p className="mt-2 text-sm text-slate-400">Manage your active employees and assign access roles.</p>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div className="mb-10">
+          <Link href="/admin" className="inline-flex items-center gap-1.5 text-xs text-[#6E6678] hover:text-[#34E7C4] transition-colors mb-6"
+            style={{ fontFamily: "var(--font-mono), monospace" }}>
+            <ChevronLeft className="w-3.5 h-3.5" /> back to control center
+          </Link>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md mb-3"
+                style={{ background: "rgba(52,231,196,0.07)", border: "1px solid rgba(52,231,196,0.18)", color: "#34E7C4", fontFamily: "var(--font-mono), monospace" }}>
+                <Users className="w-3.5 h-3.5" />
+                <span className="text-[11px] uppercase tracking-widest">Team Management</span>
+              </div>
+              <h1 className="text-3xl font-light text-[#EDE6D6] tracking-tight"
+                style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}>
+                Organisation Members
+              </h1>
+              <p className="text-sm text-[#6E6678] mt-1.5">Manage users, roles, and active sessions.</p>
             </div>
-            <input
-              type="text"
-              placeholder="Search team members..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-slate-800 rounded-xl bg-slate-900/60 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:w-80 sm:text-sm text-slate-200 placeholder-slate-500 outline-none transition-all"
-            />
+            <button onClick={() => { setShowCreateModal(true); setError(""); }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all self-start"
+              style={{ background: "rgba(52,231,196,0.1)", border: "1px solid rgba(52,231,196,0.22)", color: "#34E7C4" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(52,231,196,0.18)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(52,231,196,0.1)"}>
+              <UserPlus className="w-4 h-4" />
+              New Member
+            </button>
           </div>
         </div>
+
+        {/* Toasts */}
+        <AnimatePresence>
+          {success && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="mb-5 p-4 rounded-lg text-sm flex items-center gap-3"
+              style={{ background: "rgba(52,231,196,0.08)", border: "1px solid rgba(52,231,196,0.2)", color: "#34E7C4" }}>
+              <CheckCircle2 className="w-4 h-4" /> {success}
+            </motion.div>
+          )}
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="mb-5 p-4 rounded-lg text-sm flex items-center gap-3"
+              style={{ background: "rgba(255,99,85,0.08)", border: "1px solid rgba(255,99,85,0.2)", color: "#FF6355" }}>
+              <X className="w-4 h-4" /> {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Table */}
-        <div className="backdrop-blur-xl bg-slate-900/40 shadow-2xl rounded-2xl overflow-hidden border border-slate-800/80">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800/60">
-              <thead className="bg-slate-950/50">
-                <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Employee</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Last Login</th>
-                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No team members found matching your search.
-                    </td>
+        <div className="rounded-2xl overflow-hidden" style={PANEL}>
+          <div className="px-7 py-5" style={{ borderBottom: "1px solid rgba(237,230,214,0.06)" }}>
+            <h2 className="text-sm font-semibold text-[#EDE6D6] flex items-center gap-2">
+              <Users className="w-4 h-4" style={{ color: "#34E7C4" }} />
+              Members ({users.length})
+            </h2>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#34E7C4" }} />
+            </div>
+          ) : users.length === 0 ? (
+            /* Empty state — unlit mesh node */
+            <div className="flex flex-col items-center py-24 gap-4">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="8" stroke="#6E6678" strokeWidth="1" strokeDasharray="4 4" />
+                <circle cx="24" cy="24" r="2" fill="#6E6678" fillOpacity="0.4" />
+                <line x1="24" y1="4"  x2="24" y2="16" stroke="#6E6678" strokeOpacity="0.2" strokeWidth="0.75" />
+                <line x1="24" y1="32" x2="24" y2="44" stroke="#6E6678" strokeOpacity="0.2" strokeWidth="0.75" />
+                <line x1="4"  y1="24" x2="16" y2="24" stroke="#6E6678" strokeOpacity="0.2" strokeWidth="0.75" />
+                <line x1="32" y1="24" x2="44" y2="24" stroke="#6E6678" strokeOpacity="0.2" strokeWidth="0.75" />
+              </svg>
+              <p className="text-sm text-[#6E6678]" style={{ fontFamily: "var(--font-mono), monospace" }}>no team yet</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(237,230,214,0.06)" }}>
+                    {["User", "Email", "Role", "Status", "Joined", ""].map(h => (
+                      <th key={h} className="px-6 py-4 text-[10px] uppercase tracking-widest font-semibold"
+                        style={{ color: "#6E6678", fontFamily: "var(--font-mono), monospace" }}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-tr from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm">
-                            {user.name.charAt(0).toUpperCase()}
+                </thead>
+                <tbody>
+                  {users.map((u, i) => (
+                    <motion.tr key={u.id}
+                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="group"
+                      style={{ borderBottom: "1px solid rgba(237,230,214,0.04)" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(237,230,214,0.02)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+                            style={{ background: "rgba(52,231,196,0.12)", border: "1px solid rgba(52,231,196,0.2)", color: "#34E7C4" }}>
+                            {u.name.charAt(0).toUpperCase()}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-semibold text-slate-200">{user.name}</div>
-                            <div className="text-sm text-slate-400">{user.email}</div>
-                          </div>
+                          <span className="font-semibold text-sm text-[#EDE6D6]">{u.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span>
-                          {user.status}
+                      <td className="px-6 py-4">
+                        <span style={{ fontFamily: "var(--font-mono), monospace", color: "#A8A0B0", fontSize: "11px" }}>
+                          {u.email}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {editingUserId === user.id ? (
-                          <select
-                            value={selectedRoleId}
-                            onChange={(e) => setSelectedRoleId(e.target.value)}
-                            className="block w-full pl-3 pr-10 py-1.5 text-sm border-slate-700 bg-slate-800 text-slate-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-lg outline-none"
-                          >
-                            <option value="">No Role</option>
-                            {roles.map(role => (
-                              <option key={role.id} value={role.id}>{role.name}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className={`inline-flex px-2.5 py-1 text-sm font-medium rounded-md border ${
-                            user.role ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'
-                          }`}>
-                            {user.role ? user.role.name : 'Unassigned'}
-                          </span>
-                        )}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] uppercase tracking-wider"
+                          style={{ fontFamily: "var(--font-mono), monospace", background: "rgba(52,231,196,0.07)", border: "1px solid rgba(52,231,196,0.16)", color: "#34E7C4" }}>
+                          {getRoleName(u.roleId)}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                        {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] uppercase tracking-wider"
+                          style={{
+                            fontFamily: "var(--font-mono), monospace",
+                            background: u.status === "active" ? "rgba(52,231,196,0.07)" : "rgba(242,162,76,0.07)",
+                            border: u.status === "active" ? "1px solid rgba(52,231,196,0.16)" : "1px solid rgba(242,162,76,0.16)",
+                            color: u.status === "active" ? "#34E7C4" : "#F2A24C",
+                          }}>
+                          {u.status}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {currentUser?.id === user.id ? (
-                          <span className="inline-flex px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-900 border border-slate-800 text-slate-500">
-                            Current User
-                          </span>
-                        ) : editingUserId === user.id ? (
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => handleSaveRole(user.id)}
-                              disabled={savingId === user.id}
-                              className="text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center shadow-md disabled:opacity-50"
-                            >
-                              {savingId === user.id ? (
-                                <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                              ) : (
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                              )}
-                              Save
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingUserId(null);
-                                setSelectedRoleId('');
-                              }}
-                              disabled={savingId === user.id}
-                              className="text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-xs font-semibold transition-colors hover:bg-slate-700 disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setEditingUserId(user.id);
-                              setSelectedRoleId(user.role?.id || '');
-                            }}
-                            className="text-indigo-400 hover:text-white font-medium px-3 py-1.5 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 border border-indigo-500/20 transition-colors"
-                          >
-                            Edit Role
+                      <td className="px-6 py-4">
+                        <span style={{ fontFamily: "var(--font-mono), monospace", color: "#6E6678", fontSize: "10px" }}>
+                          {new Date(u.createdAt).toLocaleDateString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setEditUser(u); setEditRoleId(String(u.roleId || roles[0]?.id || "")); }}
+                            className="p-1.5 rounded-lg transition-all"
+                            style={{ color: "#A8A0B0" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "#34E7C4"; e.currentTarget.style.background = "rgba(52,231,196,0.08)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "#A8A0B0"; e.currentTarget.style.background = "transparent"; }}>
+                            <Settings2 className="w-4 h-4" />
                           </button>
-                        )}
+                          <button onClick={() => handleDeleteUser(u.id, u.name)}
+                            className="p-1.5 rounded-lg transition-all"
+                            style={{ color: "#A8A0B0" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "#FF6355"; e.currentTarget.style.background = "rgba(255,99,85,0.08)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "#A8A0B0"; e.currentTarget.style.background = "transparent"; }}>
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Create User Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(10,11,16,0.85)", backdropFilter: "blur(8px)" }}
+            onClick={e => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-md rounded-2xl p-8 relative"
+              style={{ background: "#14151F", border: "1px solid rgba(237,230,214,0.1)" }}>
+              <div className="absolute top-0 left-8 right-8 h-px bg-[#EDE6D6]/10" />
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-light text-[#EDE6D6]" style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}>
+                  New Member
+                </h2>
+                <button onClick={() => setShowCreateModal(false)} className="text-[#6E6678] hover:text-[#EDE6D6] transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                {[
+                  { label: "Full Name",     key: "name",     type: "text",     placeholder: "Jane Smith" },
+                  { label: "Email Address", key: "email",    type: "email",    placeholder: "jane@company.com" },
+                  { label: "Password",      key: "password", type: "password", placeholder: "Min. 8 characters" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(237,230,214,0.7)" }}>{f.label}</label>
+                    <input
+                      type={f.type} required
+                      value={(newUser as any)[f.key]}
+                      onChange={e => setNewUser({ ...newUser, [f.key]: e.target.value })}
+                      placeholder={f.placeholder}
+                      className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                      style={INPUT_STYLE}
+                      onFocus={e => { e.target.style.borderColor = "rgba(52,231,196,0.4)"; }}
+                      onBlur={e => { e.target.style.borderColor = "rgba(237,230,214,0.08)"; }}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(237,230,214,0.7)" }}>Role</label>
+                  <select
+                    value={newUser.roleId}
+                    onChange={e => setNewUser({ ...newUser, roleId: e.target.value })}
+                    className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                    style={{ ...INPUT_STYLE, appearance: "none" as any }}>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id} style={{ background: "#14151F" }}>
+                        {r.name.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="submit"
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all"
+                    style={{ background: "#34E7C4", color: "#0A0B10" }}>
+                    Create Member
+                  </button>
+                  <button type="button" onClick={() => setShowCreateModal(false)}
+                    className="py-2.5 px-5 rounded-xl text-sm text-[#A8A0B0]"
+                    style={{ background: "rgba(237,230,214,0.04)", border: "1px solid rgba(237,230,214,0.08)" }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Role Modal */}
+      <AnimatePresence>
+        {editUser && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(10,11,16,0.85)", backdropFilter: "blur(8px)" }}
+            onClick={e => { if (e.target === e.currentTarget) setEditUser(null); }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-sm rounded-2xl p-8 relative"
+              style={{ background: "#14151F", border: "1px solid rgba(237,230,214,0.1)" }}>
+              <div className="absolute top-0 left-8 right-8 h-px bg-[#EDE6D6]/10" />
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-light text-[#EDE6D6]" style={{ fontFamily: "var(--font-fraunces), Georgia, serif" }}>
+                  Change Role
+                </h2>
+                <button onClick={() => setEditUser(null)} className="text-[#6E6678] hover:text-[#EDE6D6] transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs mb-6" style={{ fontFamily: "var(--font-mono), monospace", color: "#34E7C4" }}>
+                {editUser.name}
+              </p>
+              <form onSubmit={handleUpdateRole} className="space-y-4">
+                <select
+                  value={editRoleId}
+                  onChange={e => setEditRoleId(e.target.value)}
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+                  style={{ ...INPUT_STYLE, appearance: "none" as any }}
+                  onFocus={e => { e.target.style.borderColor = "rgba(52,231,196,0.4)"; }}
+                  onBlur={e => { e.target.style.borderColor = "rgba(237,230,214,0.08)"; }}>
+                  {roles.map(r => (
+                    <option key={r.id} value={r.id} style={{ background: "#14151F" }}>
+                      {r.name.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-3 pt-1">
+                  <button type="submit"
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all"
+                    style={{ background: "#34E7C4", color: "#0A0B10" }}>
+                    Update Role
+                  </button>
+                  <button type="button" onClick={() => setEditUser(null)}
+                    className="py-2.5 px-5 rounded-xl text-sm text-[#A8A0B0]"
+                    style={{ background: "rgba(237,230,214,0.04)", border: "1px solid rgba(237,230,214,0.08)" }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

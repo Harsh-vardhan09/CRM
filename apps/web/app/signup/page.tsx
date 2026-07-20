@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -107,200 +108,187 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
-      {/* Decorative gradient backgrounds */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl"></div>
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-72 w-72 translate-x-1/2 rounded-full bg-violet-500/20 blur-3xl"></div>
-
-      <div className="w-full max-w-md space-y-8 z-10">
-        <div className="flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30">
-            <svg
-              className="h-6 w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
-            Create an Account
-          </h2>
-          <p className="mt-2 text-center text-sm text-slate-400">
-            Register a new workspace or join your team
-          </p>
+    <div className="flex min-h-screen bg-ivory-50 text-ink-text selection:bg-brass/10">
+      
+      {/* Left Panel — Dark spine */}
+      <div className="hidden lg:flex lg:w-5/12 bg-ink-950 border-r border-ink-border flex-col justify-between p-14 relative z-10">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-brass" />
+          <span className="font-serif text-lg tracking-tight text-ivory-text font-normal">VYOR</span>
         </div>
 
-        {/* Glassmorphic Card */}
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+        <div className="max-w-xs space-y-6">
+          <h2 className="font-serif text-4xl leading-tight text-ivory-text tracking-tight">
+            Create an Workspace <span className="italic font-normal">Today.</span>
+          </h2>
+          <p className="text-sm text-muted-ink leading-relaxed font-sans font-light">
+            Empower your sales rep workspace with automated message templates, smart lead pipelines, and organization-scoped client intelligence.
+          </p>
 
-          {/* Tabs */}
-          <div className="flex p-1 space-x-1 bg-slate-950/50 rounded-xl mb-6">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('company'); setError(''); setSuccess(''); }}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === 'company'
-                ? 'bg-indigo-500 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
-            >
-              New Company
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('employee'); setError(''); setSuccess(''); }}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === 'employee'
-                ? 'bg-violet-500 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
-            >
-              Join Company
-            </button>
+          <div className="pl-4 border-l border-brass/35 relative">
+            <span className="absolute -left-[3.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-brass" />
+            <p className="font-mono text-xs text-muted-ink">
+              join or create company
+            </p>
+          </div>
+        </div>
+
+        <div className="text-xs font-mono text-muted-ink">
+          © 2026 VYOR Technologies
+        </div>
+      </div>
+
+      {/* Right Panel — Ivory canvas */}
+      <div className="w-full lg:w-7/12 flex items-center justify-center p-6 sm:p-14 relative">
+        <div className="w-full max-w-md relative z-10 page-enter">
+          
+          <div className="lg:hidden flex items-center gap-2 justify-center mb-10">
+            <div className="w-5 h-5 rounded-full bg-brass" />
+            <span className="font-serif text-xl tracking-tight text-ink-text font-normal">VYOR</span>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
-                {error}
-              </div>
-            )}
+          {/* Form Card */}
+          <div className="bg-white border border-ivory-border rounded-xl p-8 sm:p-10 shadow-editorial">
+            <div className="mb-6">
+              <h1 className="text-2xl font-serif text-ink-text tracking-tight">
+                Create an Account
+              </h1>
+              <p className="text-sm text-muted-ivory mt-1.5">Register a new workspace or join your team</p>
+            </div>
 
+            {/* Tabs */}
+            <div className="flex p-1 bg-ivory-100 rounded-lg mb-6 border border-ivory-border">
+              <button
+                type="button"
+                onClick={() => { setActiveTab('company'); setError(''); setSuccess(''); }}
+                className={`w-full py-2 text-xs font-mono uppercase tracking-wide rounded-md transition-colors ${
+                  activeTab === 'company'
+                    ? 'bg-brass text-white shadow'
+                    : 'text-muted-ivory hover:text-ink-text'
+                }`}
+              >
+                New Company
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('employee'); setError(''); setSuccess(''); }}
+                className={`w-full py-2 text-xs font-mono uppercase tracking-wide rounded-md transition-colors ${
+                  activeTab === 'employee'
+                    ? 'bg-brass text-white shadow'
+                    : 'text-muted-ivory hover:text-ink-text'
+                }`}
+              >
+                Join Company
+              </button>
+            </div>
 
-            {success && (
-              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">
-                {success}
-              </div>
-            )}
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+                    <div className="rounded-lg p-4 text-sm flex items-center gap-3 border border-brick/20 bg-brick/5 text-brick font-sans">
+                      <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                      {error}
+                    </div>
+                  </motion.div>
+                )}
+                {success && (
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+                    <div className="rounded-lg p-4 text-sm flex items-center gap-3 border border-moss/20 bg-moss/5 text-moss font-sans">
+                      <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
+                      {success}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {activeTab === "company" ? (
-              <div>
-                <label
-                  htmlFor="companyName"
-                  className="block text-sm font-medium text-slate-300"
-                >
-                  Company Name
-                </label>
-                <div className="mt-1">
+              {activeTab === "company" ? (
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Company Name</label>
                   <input
-                    id="companyName"
                     type="text"
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                    className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
                     placeholder="Acme Corp"
                   />
                 </div>
-              </div>
-            ) : (
-              <div>
-                <label
-                  htmlFor="companyId"
-                  className="block text-sm font-medium text-slate-300"
-                >
-                  Company ID
-                </label>
-                <div className="mt-1">
+              ) : (
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Company ID</label>
                   <input
-                    id="companyId"
                     type="number"
                     required
                     value={companyId}
                     onChange={(e) => setCompanyId(e.target.value)}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                    className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
                     placeholder="1"
                   />
                 </div>
-              </div>
-            )}
+              )}
 
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-slate-300"
-              >
-                Full Name
-              </label>
-              <div className="mt-1">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Full Name</label>
                 <input
-                  id="name"
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
                   placeholder="John Doe"
                 />
               </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-slate-300"
-              >
-                Email Address
-              </label>
-              <div className="mt-1">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Email Address</label>
                 <input
-                  id="email"
                   type="email"
-                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
                   placeholder="john@example.com"
                 />
               </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-slate-300"
-              >
-                Password
-              </label>
-              <div className="mt-1">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Password</label>
                 <input
-                  id="password"
                   type="password"
-                  autoComplete="new-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
                   placeholder="••••••••"
                 />
               </div>
-            </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative flex w-full justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:from-indigo-600 hover:to-violet-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50"
-              >
-                {isLoading ? "Submitting..." : "Sign Up"}
-              </button>
-            </div>
-          </form>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center rounded-lg bg-ink-text px-5 py-3 text-sm font-medium text-ivory-text transition-colors hover:bg-ink-800 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Signing up…
+                    </span>
+                  ) : 'Sign Up'}
+                </button>
+              </div>
+            </form>
 
-          <div className="mt-6 text-center text-sm text-slate-400">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-            >
-              Sign in here
-            </Link>
+            <div className="mt-6 text-center text-xs text-muted-ivory">
+              Already have an account?{" "}
+              <Link href="/login" className="font-medium text-brass hover:underline">
+                Sign in here
+              </Link>
+            </div>
           </div>
         </div>
       </div>

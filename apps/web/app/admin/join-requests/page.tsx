@@ -1,65 +1,40 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, X, Loader2, UserPlus } from "lucide-react";
+import DashboardLayout from "../../components/DashboardLayout";
 
-interface JoinRequest {
-  id: number;
-  name: string;
-  email: string;
-  createdAt: string;
-}
+interface JoinRequest { id: number; name: string; email: string; createdAt: string; }
+interface Role { id: number; name: string; }
 
-interface Role {
-  id: number;
-  name: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function JoinRequestsPage() {
-  const [requests, setRequests] = useState<JoinRequest[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [requests, setRequests]     = useState<JoinRequest[]>([]);
+  const [roles, setRoles]           = useState<Role[]>([]);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [error, setError]           = useState("");
+  const [success, setSuccess]       = useState("");
 
-  // For the approve modal
-  const [selectedUser, setSelectedUser] = useState<JoinRequest | null>(null);
+  const [selectedUser, setSelectedUser]     = useState<JoinRequest | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | "">("");
-  const [isApproving, setIsApproving] = useState(false);
+  const [isApproving, setIsApproving]       = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError("");
-
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
       const [reqsRes, rolesRes] = await Promise.all([
-        fetch(`${API_URL}/auth/company/join-requests`, {
-          // In a real app we would use credentials: 'include' if cookies are used,
-          // but assuming we are relying on cookies for auth:
-          credentials: "include",
-        }),
-        fetch(`${API_URL}/auth/company/roles`, {
-          credentials: "include",
-        }),
+        fetch(`${API_URL}/auth/company/join-requests`, { credentials: "include" }),
+        fetch(`${API_URL}/auth/company/roles`,         { credentials: "include" }),
       ]);
-
-      if (!reqsRes.ok || !rolesRes.ok) {
-        throw new Error(
-          "Failed to fetch data. Ensure you are logged in as an Admin.",
-        );
-      }
-
-      const reqsData = await reqsRes.json();
+      if (!reqsRes.ok || !rolesRes.ok) throw new Error("Failed to fetch data. Ensure you are logged in as an Admin.");
+      const reqsData  = await reqsRes.json();
       const rolesData = await rolesRes.json();
-
-      setRequests(reqsData.data || []);
-      setRoles(rolesData.data || []);
-
-      if (rolesData.data && rolesData.data.length > 0) {
-        setSelectedRoleId(rolesData.data[0].id);
-      }
+      setRequests(reqsData.data  || []);
+      setRoles(rolesData.data    || []);
+      if (rolesData.data?.length > 0) setSelectedRoleId(rolesData.data[0].id);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {
@@ -67,201 +42,201 @@ export default function JoinRequestsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleApprove = async () => {
     if (!selectedUser || !selectedRoleId) return;
-
-    setIsApproving(true);
-    setError("");
-    setSuccess("");
-
+    setIsApproving(true); setError(""); setSuccess("");
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${API_URL}/auth/company/join-requests/approve`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          roleId: selectedRoleId,
-        }),
+        body: JSON.stringify({ userId: selectedUser.id, roleId: selectedRoleId }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to approve user.");
-
-      setSuccess(`User ${selectedUser.name} has been approved.`);
-      setRequests(requests.filter((req) => req.id !== selectedUser.id));
+      setSuccess(`${selectedUser.name} approved`);
+      setRequests(r => r.filter(x => x.id !== selectedUser.id));
       setSelectedUser(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsApproving(false);
-    }
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) { setError(err.message); }
+    finally { setIsApproving(false); }
   };
 
   const handleReject = async (userId: number, userName: string) => {
-    if (!confirm(`Are you sure you want to reject ${userName}?`)) return;
-
-    setError("");
-    setSuccess("");
-
+    if (!confirm(`Reject ${userName}'s request?`)) return;
+    setError(""); setSuccess("");
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
       const res = await fetch(`${API_URL}/auth/company/join-requests/reject`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ userId }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to reject user.");
-
-      setSuccess(`User ${userName} has been rejected.`);
-      setRequests(requests.filter((req) => req.id !== userId));
-    } catch (err: any) {
-      setError(err.message);
-    }
+      setSuccess(`${userName} rejected`);
+      setRequests(r => r.filter(x => x.id !== userId));
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) { setError(err.message); }
   };
 
   return (
-    <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
-      {/* Decorative gradient backgrounds */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl"></div>
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-72 w-72 translate-x-1/2 rounded-full bg-violet-500/20 blur-3xl"></div>
-
-      <div className="w-full max-w-4xl space-y-8 z-10">
-        <Link href="/admin" className="inline-flex items-center text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to Dashboard
-        </Link>
-        <div className="flex flex-col items-center">
-          <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
-            Join Requests
-          </h2>
-          <p className="mt-2 text-center text-sm text-slate-400">
-            Manage pending employee access requests for your workspace.
-          </p>
+    <DashboardLayout>
+      <div className="space-y-8">
+        
+        {/* Header Section */}
+        <div className="space-y-3 pb-8 border-b border-ivory-border">
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
+            <span className="w-1.5 h-1.5 rounded-full bg-brick" />
+            Access Requests
+          </div>
+          <h1 className="text-3xl font-serif tracking-tight text-ink-text">
+            Pending Join Requests
+          </h1>
+          <p className="text-sm text-muted-ivory">Review and approve or reject employee access requests.</p>
         </div>
 
-        {/* Glassmorphic Card */}
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-          {error && (
-            <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-
+        {/* Toasts */}
+        <AnimatePresence>
           {success && (
-            <div className="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">
-              {success}
-            </div>
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="p-4 rounded-lg text-sm flex items-center gap-3 border border-moss/20 bg-moss/5 text-moss">
+              <CheckCircle2 className="w-4 h-4" /> {success}
+            </motion.div>
           )}
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="p-4 rounded-lg text-sm flex items-center gap-3 border border-brick/20 bg-brick/5 text-brick">
+              <X className="w-4 h-4" /> {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Content Card */}
+        <div className="bg-white border border-ivory-border rounded-xl shadow-editorial overflow-hidden">
+          <div className="px-6 py-5 border-b border-ivory-border">
+            <h2 className="text-sm font-semibold text-ink-text flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-brass" />
+              Requests ({requests.length})
+            </h2>
+          </div>
 
           {isLoading ? (
-            <div className="text-center text-slate-400 py-8">
-              Loading requests...
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-6 h-6 animate-spin text-brass" />
             </div>
           ) : requests.length === 0 ? (
-            <div className="text-center text-slate-500 py-12 bg-slate-950/30 rounded-xl border border-slate-800 border-dashed">
-              No pending join requests.
+            <div className="flex flex-col items-center py-24 gap-4">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="8" stroke="#726C61" strokeWidth="1" strokeDasharray="4 4" />
+                <circle cx="24" cy="24" r="2" fill="#726C61" fillOpacity="0.4" />
+              </svg>
+              <p className="text-xs font-mono uppercase tracking-wide text-muted-ivory">no pending requests</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {requests.map((req) => (
-                <div
+            <div className="divide-y divide-ivory-border">
+              {requests.map((req, i) => (
+                <motion.div 
                   key={req.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-950/50 border border-slate-800 rounded-xl transition-all hover:bg-slate-800/50"
+                  initial={{ opacity: 0, y: 8 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: i * 0.03 }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 gap-4 bg-white"
                 >
-                  <div className="mb-4 sm:mb-0">
-                    <h3 className="text-lg font-medium text-slate-200">
-                      {req.name}
-                    </h3>
-                    <p className="text-sm text-slate-400">{req.email}</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Requested on{" "}
-                      {new Date(req.createdAt).toLocaleDateString()}
+                  <div className="pl-4 border-l-2 border-brick">
+                    <p className="font-semibold text-sm text-ink-text">{req.name}</p>
+                    <p className="font-mono text-xs text-muted-ivory mt-0.5">
+                      {req.email}
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-ink mt-0.5">
+                      requested · {new Date(req.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-3">
-                    <button
+                  {/* Actions — Muted, Editorial, conforming to button system */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button 
                       onClick={() => setSelectedUser(req)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
+                      className="rounded-lg border border-ivory-border bg-white px-4 py-2 text-xs font-medium text-ink-text transition-colors hover:bg-ivory-100 active:scale-[0.98]"
                     >
                       Approve
                     </button>
-                    <button
+                    <button 
                       onClick={() => handleReject(req.id, req.name)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
+                      className="rounded-lg border border-brick/30 bg-white px-4 py-2 text-xs font-medium text-brick transition-colors hover:bg-brick/5 active:scale-[0.98]"
                     >
                       Reject
                     </button>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Approval Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-100 mb-2">
-              Approve {selectedUser.name}
-            </h3>
-            <p className="text-sm text-slate-400 mb-6">
-              Select a role for this user.
-            </p>
+      {/* Approve Modal - Ink 900 */}
+      <AnimatePresence>
+        {selectedUser && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70"
+            onClick={e => { if (e.target === e.currentTarget) setSelectedUser(null); }}
+          >
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="w-full max-w-sm bg-ink-900 border border-ink-border rounded-2xl p-8 text-ivory-text shadow-[0_24px_64px_-12px_rgba(0,0,0,0.5)] relative"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-serif text-ivory-text">
+                  Approve Access
+                </h2>
+                <button onClick={() => setSelectedUser(null)} className="text-muted-ink hover:text-ivory-text transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="font-mono text-xs text-brass mb-6">
+                {selectedUser.name}
+              </p>
 
-            <div className="mb-6">
-              <label
-                htmlFor="role"
-                className="block text-sm font-medium text-slate-300 mb-2"
-              >
-                Assign Role
-              </label>
-              <select
-                id="role"
-                value={selectedRoleId}
-                onChange={(e) => setSelectedRoleId(Number(e.target.value))}
-                className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-              >
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-6">
+                <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">
+                  Assign Role
+                </label>
+                <select
+                  value={selectedRoleId}
+                  onChange={e => setSelectedRoleId(Number(e.target.value))}
+                  className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                >
+                  {roles.map(r => (
+                    <option key={r.id} value={r.id} style={{ background: "#1B1B21" }}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setSelectedUser(null)}
-                disabled={isApproving}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-slate-300 hover:bg-slate-800 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={isApproving}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-all shadow-md disabled:opacity-50"
-              >
-                {isApproving ? "Approving..." : "Confirm"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleApprove} 
+                  disabled={isApproving}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-brass hover:bg-brass-hover text-white transition-colors active:scale-[0.98] disabled:opacity-60"
+                >
+                  {isApproving ? "Approving…" : "Confirm Approval"}
+                </button>
+                <button 
+                  onClick={() => setSelectedUser(null)} 
+                  disabled={isApproving}
+                  className="py-2.5 px-5 rounded-lg text-sm font-medium border border-ink-border text-ivory-text hover:bg-ink-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }

@@ -4,6 +4,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import DashboardLayout from "../components/DashboardLayout";
+import { AlertCircle, Loader2, Plus, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -27,17 +30,17 @@ interface Lead {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  no_reply: "bg-slate-500",
-  contacted: "bg-blue-500",
-  qualified: "bg-emerald-500",
-  unreachable: "bg-yellow-500",
-  lost: "bg-red-500",
+  no_reply: "bg-muted-ink",
+  contacted: "bg-brass",
+  qualified: "bg-moss",
+  unreachable: "bg-ochre",
+  lost: "bg-brick",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "text-slate-400",
-  medium: "text-yellow-400",
-  high: "text-red-400",
+  low: "text-muted-ivory",
+  medium: "text-ochre",
+  high: "text-brick",
 };
 
 const STATUSES = ["no_reply", "contacted", "qualified", "unreachable", "lost"];
@@ -120,24 +123,27 @@ export default function LeadsPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-200 py-10 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <div className="absolute top-0 left-0 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
-      <div className="absolute bottom-0 right-0 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
-
-      <div className="max-w-6xl mx-auto space-y-6">
+    <DashboardLayout>
+      <div className="space-y-8">
+        
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-100 to-violet-400 bg-clip-text text-transparent">
-              Leads
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-8 border-b border-ivory-border gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
+              <span className="w-1.5 h-1.5 rounded-full bg-brass" />
+              Leads Management
+            </div>
+            <h1 className="text-3xl font-serif tracking-tight text-ink-text">
+              Leads List
             </h1>
-            <p className="text-slate-400 text-sm mt-1">{total} total leads</p>
+            <p className="text-muted-ivory text-sm mt-1">{total} total leads in organization</p>
           </div>
+          
           <button
             onClick={() => { setShowAdd(true); setAddError(""); }}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold text-sm shadow-md hover:from-violet-600 hover:to-indigo-600 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-brass px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-brass-hover active:scale-[0.98] self-start sm:self-auto"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            <Plus className="w-4 h-4" />
             <span>New Lead</span>
           </button>
         </div>
@@ -146,7 +152,11 @@ export default function LeadsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => { setStatusFilter(""); setPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === "" && activeFilter === "" ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wide border transition-colors ${
+              statusFilter === "" && activeFilter === "" 
+                ? "bg-brass text-white border-brass" 
+                : "bg-white border-ivory-border text-ink-text hover:bg-ivory-100"
+            }`}
           >
             All
           </button>
@@ -154,83 +164,108 @@ export default function LeadsPage() {
             <button
               key={s}
               onClick={() => { setStatusFilter(s); setActiveFilter(""); setPage(1); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${statusFilter === s ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wide border transition-colors ${
+                statusFilter === s 
+                  ? "bg-brass text-white border-brass" 
+                  : "bg-white border-ivory-border text-ink-text hover:bg-ivory-100"
+              }`}
             >
-              <span className={`inline-block w-2 h-2 rounded-full ${STATUS_COLORS[s]}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[s]}`} />
               {s.replace("_", " ")}
             </button>
           ))}
           <button
             onClick={() => { setActiveFilter(activeFilter === "true" ? "" : "true"); setStatusFilter(""); setPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === "true" ? "bg-emerald-500 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wide border transition-colors ${
+              activeFilter === "true" 
+                ? "bg-moss text-white border-moss" 
+                : "bg-white border-ivory-border text-ink-text hover:bg-ivory-100"
+            }`}
           >
             Active only
           </button>
           <button
             onClick={() => { setActiveFilter(activeFilter === "false" ? "" : "false"); setStatusFilter(""); setPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === "false" ? "bg-yellow-500 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+            className={`px-3.5 py-2 rounded-lg text-xs font-mono uppercase tracking-wide border transition-colors ${
+              activeFilter === "false" 
+                ? "bg-ochre text-white border-ochre" 
+                : "bg-white border-ivory-border text-ink-text hover:bg-ivory-100"
+            }`}
           >
             Inactive
           </button>
         </div>
 
-        {error && <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{error}</div>}
+        {error && (
+          <div className="rounded-lg border border-brick/20 bg-brick/5 p-4 text-sm text-brick flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
 
-        {/* Table */}
-        <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden">
+        {/* Table Card */}
+        <div className="bg-white border border-ivory-border rounded-xl shadow-editorial overflow-hidden">
           {fetching ? (
-            <div className="flex justify-center py-16">
-              <div className="w-10 h-10 border-4 border-t-violet-500 border-violet-200 rounded-full animate-spin" />
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 text-brass animate-spin" />
             </div>
           ) : leads.length === 0 ? (
-            <div className="text-center py-16 text-slate-500">No leads found.</div>
+            <div className="text-center py-20 text-muted-ivory">No leads found.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                    <th className="text-left px-6 py-4 font-semibold">Lead</th>
-                    <th className="text-left px-4 py-4 font-semibold">Status</th>
-                    <th className="text-left px-4 py-4 font-semibold">Priority</th>
-                    <th className="text-left px-4 py-4 font-semibold">Score</th>
-                    <th className="text-left px-4 py-4 font-semibold">Client</th>
-                    <th className="text-left px-4 py-4 font-semibold">Last Contact</th>
-                    <th className="text-right px-6 py-4 font-semibold"></th>
+                  <tr className="bg-ivory-50 text-muted-ivory text-xs font-mono uppercase tracking-wider border-b border-ivory-border">
+                    <th className="px-6 py-3.5 font-semibold">Lead</th>
+                    <th className="px-6 py-3.5 font-semibold">Status</th>
+                    <th className="px-6 py-3.5 font-semibold">Priority</th>
+                    <th className="px-6 py-3.5 font-semibold">Score</th>
+                    <th className="px-6 py-3.5 font-semibold">Client</th>
+                    <th className="px-6 py-3.5 font-semibold">Last Contact</th>
+                    <th className="px-6 py-3.5 font-semibold text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {leads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-slate-800/30 transition-colors">
+                <tbody className="divide-y divide-ivory-border">
+                  {leads.map((lead, i) => (
+                    <tr 
+                      key={lead.id} 
+                      className={`hover:bg-ivory-50/50 transition-colors ${
+                        i % 2 === 1 ? "bg-ivory-100/30" : ""
+                      }`}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${lead.isActive ? STATUS_COLORS[lead.status] ?? "bg-slate-500" : "bg-slate-700"}`} />
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            lead.isActive ? STATUS_COLORS[lead.status] ?? "bg-muted-ink" : "bg-muted-ivory"
+                          }`} />
                           <div>
-                            <div className="font-semibold text-slate-100">{lead.name}</div>
-                            <div className="text-xs text-slate-500">{lead.email || lead.phone || "—"}</div>
+                            <div className="font-semibold text-ink-text text-sm">{lead.name}</div>
+                            <div className="text-xs text-muted-ivory mt-0.5">{lead.email || lead.phone || "—"}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 capitalize">
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
+                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[lead.status] ?? "bg-muted-ink"}`} />
                           {lead.status.replace("_", " ")}
                         </span>
                       </td>
-                      <td className={`px-4 py-4 text-xs font-semibold capitalize ${PRIORITY_COLORS[lead.priority] ?? ""}`}>
+                      <td className={`px-6 py-4 text-xs font-mono uppercase tracking-wider font-semibold ${PRIORITY_COLORS[lead.priority] ?? ""}`}>
                         {lead.priority}
                       </td>
-                      <td className="px-4 py-4 text-slate-300 font-mono text-xs">{lead.score}</td>
-                      <td className="px-4 py-4 text-slate-400 text-xs">
+                      <td className="px-6 py-4 text-ink-text font-mono text-xs">{lead.score}</td>
+                      <td className="px-6 py-4 text-xs text-muted-ivory">
                         {lead.client ? (
-                          <Link href={`/clients/${lead.client.id}`} className="text-indigo-400 hover:text-indigo-300">{lead.client.name}</Link>
+                          <Link href={`/clients/${lead.client.id}`} className="text-brass hover:underline">{lead.client.name}</Link>
                         ) : "—"}
                       </td>
-                      <td className="px-4 py-4 text-slate-500 text-xs">
+                      <td className="px-6 py-4 text-xs text-muted-ivory font-mono">
                         {lead.lastInteractionAt ? new Date(lead.lastInteractionAt).toLocaleDateString() : "Never"}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
                           href={`/leads/${lead.id}`}
-                          className="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg border border-ivory-border bg-white text-xs font-medium text-ink-text transition-colors hover:bg-ivory-100 active:scale-[0.98]"
                         >
                           View →
                         </Link>
@@ -246,58 +281,134 @@ export default function LeadsPage() {
         {/* Pagination */}
         {pages > 1 && (
           <div className="flex justify-center gap-2">
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs disabled:opacity-50 hover:bg-slate-700">Prev</button>
-            <span className="px-3 py-1.5 text-slate-400 text-xs">{page} / {pages}</span>
-            <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs disabled:opacity-50 hover:bg-slate-700">Next</button>
+            <button 
+              disabled={page <= 1} 
+              onClick={() => setPage((p) => p - 1)} 
+              className="px-3.5 py-2 rounded-lg border border-ivory-border bg-white text-xs font-mono uppercase tracking-wide text-ink-text hover:bg-ivory-100 disabled:opacity-40 transition-colors"
+            >
+              Prev
+            </button>
+            <span className="px-4 py-2 text-muted-ivory text-xs font-mono font-medium">{page} / {pages}</span>
+            <button 
+              disabled={page >= pages} 
+              onClick={() => setPage((p) => p + 1)} 
+              className="px-3.5 py-2 rounded-lg border border-ivory-border bg-white text-xs font-mono uppercase tracking-wide text-ink-text hover:bg-ivory-100 disabled:opacity-40 transition-colors"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
 
-      {/* Add Lead Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm px-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl space-y-5">
-            <h2 className="text-xl font-bold text-slate-100">New Lead</h2>
-            {addError && <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{addError}</div>}
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Full Name <span className="text-red-400">*</span></label>
-                <input type="text" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 sm:text-sm" placeholder="Jane Smith" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-                  <input type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 sm:text-sm" placeholder="jane@co.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Phone</label>
-                  <input type="tel" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 sm:text-sm" placeholder="+1234567890" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Priority</label>
-                  <select value={addForm.priority} onChange={(e) => setAddForm({ ...addForm, priority: e.target.value })} className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 outline-none focus:border-violet-500 sm:text-sm">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Source</label>
-                  <input type="text" value={addForm.source} onChange={(e) => setAddForm({ ...addForm, source: e.target.value })} className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-violet-500 sm:text-sm" placeholder="Website" />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdd(false)} disabled={adding} className="px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 rounded-lg transition-all">Cancel</button>
-                <button type="submit" disabled={adding} className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 transition-all shadow-md disabled:opacity-50">
-                  {adding ? "Creating..." : "Create Lead"}
+      {/* Add Lead Modal - Ink 900 */}
+      <AnimatePresence>
+        {showAdd && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70"
+            onClick={() => setShowAdd(false)}
+          >
+            <motion.div 
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="relative w-full max-w-md bg-ink-900 border border-ink-border rounded-2xl p-8 shadow-2xl text-ivory-text space-y-5"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-serif text-ivory-text">New Lead</h2>
+                <button onClick={() => setShowAdd(false)} className="text-muted-ink hover:text-ivory-text transition-colors">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+
+              {addError && (
+                <div className="rounded-lg border border-brick/20 bg-brick/5 p-3 text-sm text-brick flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {addError}
+                </div>
+              )}
+
+              <form onSubmit={handleAdd} className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Full Name <span className="text-brick">*</span></label>
+                  <input 
+                    type="text" 
+                    value={addForm.name} 
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} 
+                    required 
+                    className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30" 
+                    placeholder="Jane Smith" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Email</label>
+                    <input 
+                      type="email" 
+                      value={addForm.email} 
+                      onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} 
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30" 
+                      placeholder="jane@co.com" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Phone</label>
+                    <input 
+                      type="tel" 
+                      value={addForm.phone} 
+                      onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} 
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30" 
+                      placeholder="+1234567890" 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Priority</label>
+                    <select 
+                      value={addForm.priority} 
+                      onChange={(e) => setAddForm({ ...addForm, priority: e.target.value })} 
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                    >
+                      <option value="low" style={{ background: "#1B1B21" }}>Low</option>
+                      <option value="medium" style={{ background: "#1B1B21" }}>Medium</option>
+                      <option value="high" style={{ background: "#1B1B21" }}>High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Source</label>
+                    <input 
+                      type="text" 
+                      value={addForm.source} 
+                      onChange={(e) => setAddForm({ ...addForm, source: e.target.value })} 
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30" 
+                      placeholder="Website" 
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="submit" 
+                    disabled={adding} 
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-brass hover:bg-brass-hover text-white transition-colors active:scale-[0.98] disabled:opacity-60"
+                  >
+                    {adding ? "Creating..." : "Create Lead"}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAdd(false)} 
+                    disabled={adding} 
+                    className="py-2.5 px-5 rounded-lg text-sm font-medium border border-ink-border text-ivory-text hover:bg-ink-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }

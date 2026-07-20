@@ -1,2 +1,60 @@
 @import "tailwindcss";
 @import "@repo/ui/styles.css";
+
+@theme {
+  /* Ivory family */
+  --color-ivory-50: #FAF8F3;
+  --color-ivory-0: #FFFFFF;
+  --color-ivory-100: #F1EDE3;
+  --color-ivory-border: #E5DFD1;
+
+  /* Ink family */
+  --color-ink-950: #121216;
+  --color-ink-900: #1B1B21;
+  --color-ink-800: #25252D;
+  --color-ink-border: rgba(250, 247, 241, 0.08);
+
+  /* Text overrides */
+  --color-ink-text: #1C1B1F;
+  --color-ivory-text: #F3EFE6;
+  --color-muted-ivory: #726C61;
+  --color-muted-ink: #9C978D;
+
+  /* Accent */
+  --color-brass: #9C7A3C;
+  --color-brass-hover: #B08E4E;
+
+  /* Status */
+  --color-moss: #3E5C46;
+  --color-brick: #9C4A3C;
+  --color-ochre: #A87A2E;
+
+  /* Font overrides */
+  --font-serif: var(--font-fraunces), "Fraunces", Georgia, serif;
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-mono), "IBM Plex Mono", "Courier New", monospace;
+
+  /* Editorial shadow */
+  --shadow-editorial: 0 1px 2px rgba(28,27,31,0.04), 0 8px 24px -8px rgba(28,27,31,0.08);
+}
+
+:root {
+  background-color: #FAF8F3;
+  color: #1C1B1F;
+}
+
+/* Page transitions */
+.page-enter {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import DashboardLayout from "../components/DashboardLayout";
+import { Plus, X, Search, Briefcase, AlertCircle, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -105,106 +108,126 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-200 py-10 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <div className="absolute top-0 right-0 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
-      <div className="absolute bottom-0 left-0 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
-
-      <div className="max-w-7xl mx-auto">
+    <DashboardLayout>
+      <div className="space-y-8">
+        
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <Link href="/admin" className="inline-flex items-center text-sm font-medium text-indigo-400 hover:text-indigo-300 mb-4 transition-colors">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-100 to-indigo-400 bg-clip-text text-transparent tracking-tight">
-              Clients
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-8 border-b border-ivory-border gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
+              <Briefcase className="w-3.5 h-3.5" />
+              Clients Directory
+            </div>
+            <h1 className="text-3xl font-serif tracking-tight text-ink-text">
+              Clients List
             </h1>
-            <p className="mt-2 text-sm text-slate-400">Manage your company accounts and client relationships.</p>
+            <p className="mt-2 text-sm text-muted-ivory">Manage your company accounts and client relationships.</p>
           </div>
+          
           <button
             onClick={() => { setShowModal(true); setError(""); setSuccess(""); }}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold text-sm shadow-md hover:from-indigo-600 hover:to-violet-600 transition"
+            className="inline-flex items-center gap-2 rounded-lg bg-brass px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-brass-hover active:scale-[0.98] self-start sm:self-auto"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            <Plus className="w-4 h-4" />
             <span>Add Client</span>
           </button>
         </div>
 
         {/* Alerts */}
-        {error && <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{error}</div>}
-        {success && <div className="mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">{success}</div>}
+        <AnimatePresence>
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="p-4 rounded-lg text-sm flex items-center gap-3 border border-brick/20 bg-brick/5 text-brick">
+              <AlertCircle className="w-4 h-4" /> {error}
+            </motion.div>
+          )}
+          {success && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="p-4 rounded-lg text-sm flex items-center gap-3 border border-moss/20 bg-moss/5 text-moss">
+              <CheckCircle2 className="w-4 h-4" /> {success}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-muted-ivory" />
             </div>
             <input
               type="text"
               placeholder="Search clients..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-slate-800 rounded-xl bg-slate-900/60 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm text-slate-200 placeholder-slate-500 outline-none transition-all"
+              className="block w-full rounded-lg border border-ivory-border bg-white pl-10 pr-4 py-2.5 text-xs text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
             />
           </div>
           <select
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
-            className="px-4 py-2 border border-slate-800 rounded-xl bg-slate-900/60 text-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+            className="rounded-lg border border-ivory-border bg-white px-4 py-2.5 text-xs text-ink-text outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
           >
             <option value="">All Industries</option>
             {INDUSTRIES.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
           </select>
         </div>
 
-        {/* Table */}
-        <div className="backdrop-blur-xl bg-slate-900/40 shadow-2xl rounded-2xl overflow-hidden border border-slate-800/80">
+        {/* Table Card */}
+        <div className="bg-white border border-ivory-border rounded-xl shadow-editorial overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800/60">
-              <thead className="bg-slate-950/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Account</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Industry</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Website</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Employees</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Revenue</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-ivory-50 text-muted-ivory text-xs font-mono uppercase tracking-wider border-b border-ivory-border">
+                  <th className="px-6 py-3.5 font-semibold">Account</th>
+                  <th className="px-6 py-3.5 font-semibold">Industry</th>
+                  <th className="px-6 py-3.5 font-semibold">Website</th>
+                  <th className="px-6 py-3.5 font-semibold">Employees</th>
+                  <th className="px-6 py-3.5 font-semibold">Revenue</th>
+                  <th className="px-6 py-3.5 font-semibold text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-ivory-border">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-500">Loading clients...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-ivory text-sm">Loading clients...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-500">No clients found.</td></tr>
-                ) : filtered.map((client) => (
-                  <tr key={client.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-ivory text-sm">No clients found.</td></tr>
+                ) : filtered.map((client, i) => (
+                  <tr 
+                    key={client.id} 
+                    className={`hover:bg-ivory-50/50 transition-colors ${
+                      i % 2 === 1 ? "bg-ivory-100/30" : ""
+                    }`}
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-tr from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
+                        <div className="flex-shrink-0 h-10 w-10 bg-ivory-100 border border-ivory-border rounded-full flex items-center justify-center text-ink-text font-bold text-sm font-serif shadow-editorial">
                           {client.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-semibold text-slate-200">{client.name}</div>
-                          <div className="text-xs text-slate-500 font-mono">{client.accountId}</div>
+                          <div className="text-sm font-semibold text-ink-text">{client.name}</div>
+                          <div className="text-xs text-muted-ivory font-mono mt-0.5">{client.accountId}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{client.industry || "—"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {client.website
-                        ? <a href={client.website} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">{client.website.replace(/^https?:\/\//, "")}</a>
-                        : <span className="text-slate-500">—</span>}
+                    <td className="px-6 py-4 text-xs text-muted-ivory font-mono uppercase tracking-wide">{client.industry || "—"}</td>
+                    <td className="px-6 py-4 text-xs">
+                      {client.website ? (
+                        <a href={client.website} target="_blank" rel="noreferrer" className="text-brass hover:underline font-mono">
+                          {client.website.replace(/^https?:\/\//, "")}
+                        </a>
+                      ) : (
+                        <span className="text-muted-ivory">—</span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{client.employeeCount ?? "—"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                    <td className="px-6 py-4 text-xs text-muted-ivory font-mono">{client.employeeCount ?? "—"}</td>
+                    <td className="px-6 py-4 text-xs text-muted-ivory font-mono">
                       {client.revenue ? `$${parseFloat(client.revenue).toLocaleString()}` : "—"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 text-right">
                       <Link
                         href={`/clients/${client.id}`}
-                        className="text-indigo-400 hover:text-white font-medium px-3 py-1.5 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 border border-indigo-500/20 transition-colors text-sm"
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg border border-ivory-border bg-white text-xs font-medium text-ink-text transition-colors hover:bg-ivory-100 active:scale-[0.98]"
                       >
                         View
                       </Link>
@@ -217,110 +240,138 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Add Client Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-100 mb-6">Add New Client</h3>
-            <form onSubmit={handleCreate} className="space-y-4">
-              {error && <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{error}</div>}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Company Name <span className="text-red-400">*</span></label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="Acme Corp"
-                  required
-                />
+      {/* Add Client Modal - Ink 900 */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70"
+            onClick={() => { setShowModal(false); setError(""); }}
+          >
+            <motion.div 
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="relative w-full max-w-lg bg-ink-900 border border-ink-border rounded-2xl p-8 shadow-2xl text-ivory-text"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6 border-b border-ink-border pb-4">
+                <h3 className="text-lg font-serif text-white">Add New Client</h3>
+                <button onClick={() => { setShowModal(false); setError(""); }} className="text-muted-ink hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              
+              <form onSubmit={handleCreate} className="space-y-4">
+                {error && (
+                  <div className="rounded-lg border border-brick/20 bg-brick/5 p-3 text-sm text-brick flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> {error}
+                  </div>
+                )}
+                
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Industry</label>
-                  <select
-                    value={form.industry}
-                    onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Company Name <span className="text-brick">*</span></label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                    placeholder="Acme Corp"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Industry</label>
+                    <select
+                      value={form.industry}
+                      onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                    >
+                      <option value="" style={{ background: "#1B1B21" }}>Select industry</option>
+                      {INDUSTRIES.map((ind) => <option key={ind} value={ind} style={{ background: "#1B1B21" }}>{ind}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Employees</label>
+                    <input
+                      type="number"
+                      value={form.employeeCount}
+                      onChange={(e) => setForm({ ...form, employeeCount: e.target.value })}
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                      placeholder="250"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Website</label>
+                    <input
+                      type="url"
+                      value={form.website}
+                      onChange={(e) => setForm({ ...form, website: e.target.value })}
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Annual Revenue ($)</label>
+                    <input
+                      type="number"
+                      value={form.revenue}
+                      onChange={(e) => setForm({ ...form, revenue: e.target.value })}
+                      className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                      placeholder="1000000"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Address</label>
+                  <input
+                    type="text"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                    placeholder="123 Main St, City, Country"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-muted-ink mb-1.5">Description</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={2}
+                    className="w-full rounded-lg border border-ink-border bg-ink-800 px-4 py-3 text-sm text-ivory-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30 resize-none"
+                    placeholder="Brief description of this account..."
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-4 border-t border-ink-border">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-brass hover:bg-brass-hover text-white transition-colors active:scale-[0.98] disabled:opacity-60"
                   >
-                    <option value="">Select industry</option>
-                    {INDUSTRIES.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
-                  </select>
+                    {submitting ? "Creating..." : "Create Client"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); setError(""); }}
+                    disabled={submitting}
+                    className="py-2.5 px-5 rounded-lg text-sm font-medium border border-ink-border text-ivory-text hover:bg-ink-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Employees</label>
-                  <input
-                    type="number"
-                    value={form.employeeCount}
-                    onChange={(e) => setForm({ ...form, employeeCount: e.target.value })}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="250"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Website</label>
-                  <input
-                    type="url"
-                    value={form.website}
-                    onChange={(e) => setForm({ ...form, website: e.target.value })}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="https://example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Annual Revenue ($)</label>
-                  <input
-                    type="number"
-                    value={form.revenue}
-                    onChange={(e) => setForm({ ...form, revenue: e.target.value })}
-                    className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="1000000"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Address</label>
-                <input
-                  type="text"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="123 Main St, City, Country"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={2}
-                  className="block w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-none"
-                  placeholder="Brief description of this account..."
-                />
-              </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => { setShowModal(false); setError(""); }}
-                  disabled={submitting}
-                  className="px-4 py-2 text-sm font-medium rounded-lg text-slate-300 hover:bg-slate-800 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 transition-all shadow-md disabled:opacity-50"
-                >
-                  {submitting ? "Creating..." : "Create Client"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }

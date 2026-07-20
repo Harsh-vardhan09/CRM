@@ -58,7 +58,7 @@ export const leadDecayWorker = new Worker(
     }
 
     // Mark them inactive
-    const staleIds = staleLeads.map((l) => l.id);
+    const staleIds = staleLeads.map((l: any) => l.id);
     await prisma.lead.updateMany({
       where: { id: { in: staleIds }, deletedAt: null },
       data: { isActive: false, updatedAt: new Date() },

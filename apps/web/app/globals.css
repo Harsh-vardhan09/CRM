@@ -1,39 +1,60 @@
 @import "tailwindcss";
 @import "@repo/ui/styles.css";
 
+@theme {
+  /* Ivory family */
+  --color-ivory-50: #FAF8F3;
+  --color-ivory-0: #FFFFFF;
+  --color-ivory-100: #F1EDE3;
+  --color-ivory-border: #E5DFD1;
+
+  /* Ink family */
+  --color-ink-950: #121216;
+  --color-ink-900: #1B1B21;
+  --color-ink-800: #25252D;
+  --color-ink-border: rgba(250, 247, 241, 0.08);
+
+  /* Text overrides */
+  --color-ink-text: #1C1B1F;
+  --color-ivory-text: #F3EFE6;
+  --color-muted-ivory: #726C61;
+  --color-muted-ink: #9C978D;
+
+  /* Accent */
+  --color-brass: #9C7A3C;
+  --color-brass-hover: #B08E4E;
+
+  /* Status */
+  --color-moss: #3E5C46;
+  --color-brick: #9C4A3C;
+  --color-ochre: #A87A2E;
+
+  /* Font overrides */
+  --font-serif: var(--font-fraunces), "Fraunces", Georgia, serif;
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-mono), "IBM Plex Mono", "Courier New", monospace;
+
+  /* Editorial shadow */
+  --shadow-editorial: 0 1px 2px rgba(28,27,31,0.04), 0 8px 24px -8px rgba(28,27,31,0.08);
+}
+
 :root {
-  /* Marginalia Colour Tokens */
-  --void:        #0A0B10;
-  --graphite:    #14151F;
-  --ink-violet:  #211A34;
-  --parchment:   #EDE6D6;
-  --teal:        #34E7C4;
-  --amber:       #F2A24C;
-  --coral:       #FF6355;
-  --plum:        #6B5B95;
-  --text-sec:    #A8A0B0;
-  --text-muted:  #6E6678;
-
-  /* Font stacks */
-  --font-display: var(--font-fraunces), "Fraunces", Georgia, serif;
-  --font-sans:    var(--font-inter), "Inter", system-ui, sans-serif;
-  --font-mono:    var(--font-mono), "IBM Plex Mono", "Courier New", monospace;
+  background-color: #FAF8F3;
+  color: #1C1B1F;
 }
 
-/* Utility: display face */
-.font-display { font-family: var(--font-display); }
-.font-mono-data { font-family: var(--font-mono); }
-
-@keyframes trace-pulse {
-  0%, 100% { stroke-opacity: 0.08; }
-  50%       { stroke-opacity: 0.40; }
+/* Page transitions */
+.page-enter {
+  animation: fadeIn 200ms ease-out forwards;
 }
 
-@keyframes node-breathe {
-  0%, 100% { r: 3px; fill-opacity: 0.4; }
-  50%       { r: 5px; fill-opacity: 0.8; }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}

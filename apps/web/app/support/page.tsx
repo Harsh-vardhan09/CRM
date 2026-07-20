@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '../components/DashboardLayout';
-import { Mail, MessageSquare, Plus, Send, X, AlertCircle, Clock } from 'lucide-react';
+import { Mail, MessageSquare, Plus, Send, X, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Ticket = {

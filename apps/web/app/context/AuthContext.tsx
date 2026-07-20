@@ -22,6 +22,8 @@ export interface User {
   orgId?: string;
   lastLoginAt?: string;
   isSuperAdmin?: boolean;
+  isOwner?: boolean;
+  companyId?: number;
 }
 
 interface AuthContextType {

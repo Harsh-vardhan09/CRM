@@ -35,6 +35,8 @@ export default function ClientsPage() {
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
   const [industryFilter, setIndustryFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,12 +55,13 @@ export default function ClientsPage() {
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ limit: "50" });
+      const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (industryFilter) params.set("industry", industryFilter);
       const res = await fetch(`${API_URL}/clients?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch clients.");
       const data = await res.json();
       setClients(data.data || []);
+      setPages(data.pagination?.totalPages ?? 1);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -66,13 +69,12 @@ export default function ClientsPage() {
     }
   };
 
-  useEffect(() => { fetchClients(); }, [industryFilter]);
+  useEffect(() => { fetchClients(); }, [page, industryFilter]);
 
-  const filtered = clients.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.accountId || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.industry || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  // Reset to page 1 when industry filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [industryFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,9 +192,9 @@ export default function ClientsPage() {
               <tbody className="divide-y divide-ivory-border">
                 {loading ? (
                   <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-ivory text-sm">Loading clients...</td></tr>
-                ) : filtered.length === 0 ? (
+                ) : clients.length === 0 ? (
                   <tr><td colSpan={6} className="px-6 py-12 text-center text-muted-ivory text-sm">No clients found.</td></tr>
-                ) : filtered.map((client, i) => (
+                ) : clients.map((client, i) => (
                   <tr 
                     key={client.id} 
                     className={`hover:bg-ivory-50/50 transition-colors ${
@@ -238,6 +240,27 @@ export default function ClientsPage() {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {pages > 1 && (
+          <div className="flex justify-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3.5 py-2 rounded-lg border border-ivory-border bg-white text-xs font-mono uppercase tracking-wide text-ink-text hover:bg-ivory-100 disabled:opacity-40 transition-colors"
+            >
+              Prev
+            </button>
+            <span className="px-4 py-2 text-muted-ivory text-xs font-mono font-medium">{page} / {pages}</span>
+            <button
+              disabled={page >= pages}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3.5 py-2 rounded-lg border border-ivory-border bg-white text-xs font-mono uppercase tracking-wide text-ink-text hover:bg-ivory-100 disabled:opacity-40 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add Client Modal - Ink 900 */}

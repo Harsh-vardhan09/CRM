@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertCircle, CheckCircle2, Search, X } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'company' | 'employee'>('company');
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form state
   const [companyName, setCompanyName] = useState('');
@@ -17,10 +19,56 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Company autocomplete state
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+  const [companySearchResults, setCompanySearchResults] = useState<Array<{ id: number; name: string }>>([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [selectedCompanyName, setSelectedCompanyName] = useState('');
+
   // Status state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Debounced company search
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    if (!companySearchQuery.trim()) {
+      setCompanySearchResults([]);
+      setShowCompanyDropdown(false);
+      return;
+    }
+
+    debounceTimeoutRef.current = setTimeout(async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+        const res = await fetch(`${API_URL}/auth/company/search?q=${encodeURIComponent(companySearchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCompanySearchResults(data.data || []);
+          setShowCompanyDropdown(true);
+        }
+      } catch (err) {
+        console.error("Company search failed:", err);
+        setCompanySearchResults([]);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    };
+  }, [companySearchQuery]);
+
+  const handleSelectCompany = (company: { id: number; name: string }) => {
+    setCompanyId(String(company.id));
+    setSelectedCompanyName(company.name);
+    setCompanySearchQuery('');
+    setShowCompanyDropdown(false);
+    setCompanySearchResults([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,16 +263,81 @@ export default function SignupPage() {
                   />
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Company ID</label>
-                  <input
-                    type="number"
-                    required
-                    value={companyId}
-                    onChange={(e) => setCompanyId(e.target.value)}
-                    className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                    placeholder="1"
-                  />
+                <div className="relative">
+                  <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Company Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="w-4 h-4 text-muted-ink" />
+                    </div>
+                    <input
+                      type="text"
+                      required={!companyId}
+                      value={selectedCompanyName || companySearchQuery}
+                      onChange={(e) => {
+                        setCompanySearchQuery(e.target.value);
+                        if (selectedCompanyName) {
+                          setSelectedCompanyName('');
+                          setCompanyId('');
+                        }
+                      }}
+                      onFocus={() => {
+                        if (companySearchQuery || companySearchResults.length > 0) {
+                          setShowCompanyDropdown(true);
+                        }
+                      }}
+                      className="block w-full rounded-lg border border-ivory-border bg-white pl-10 pr-10 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition-colors focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
+                      placeholder="Search company name..."
+                    />
+                    {selectedCompanyName && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCompanyName('');
+                          setCompanyId('');
+                          setCompanySearchQuery('');
+                        }}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center hover:opacity-70 transition-opacity"
+                      >
+                        <X className="w-4 h-4 text-muted-ink" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown */}
+                  <AnimatePresence>
+                    {showCompanyDropdown && companySearchResults.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-ink-900 border border-ink-border rounded-lg shadow-lg z-10 overflow-hidden"
+                      >
+                        {companySearchResults.map((company) => (
+                          <button
+                            key={company.id}
+                            type="button"
+                            onClick={() => handleSelectCompany(company)}
+                            className="w-full text-left px-4 py-3 text-sm text-ivory-text hover:bg-ink-800 transition-colors border-b border-ink-border/50 last:border-b-0"
+                          >
+                            <div className="font-medium">{company.name}</div>
+                            <div className="text-xs text-muted-ink mt-0.5">ID: {company.id}</div>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {companySearchQuery && companySearchResults.length === 0 && showCompanyDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="absolute top-full left-0 right-0 mt-2 bg-ink-900 border border-ink-border rounded-lg shadow-lg z-10 px-4 py-3 text-sm text-muted-ink"
+                    >
+                      No companies found
+                    </motion.div>
+                  )}
                 </div>
               )}
 

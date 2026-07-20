@@ -14,6 +14,7 @@ import {
   updatePassword,
   forgotPassword,
   resetPassword,
+  searchCompanies,
 } from "../controllers/authController.js";
 import { protect, restrictTo } from "../middleware/authMiddleware.js";
 
@@ -30,6 +31,7 @@ router.post("/reset-password", resetPassword);
 
 router.post("/signup/company", signUpCompany); // For CEO / Owner Signup
 router.post("/signup/employee", signUpEmployee); // For Sales Rep / Employee Signup
+router.get("/company/search", searchCompanies); // Public: search companies by name
 
 // Admin Join-Request Routes
 router.get(

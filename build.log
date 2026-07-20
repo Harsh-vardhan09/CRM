@@ -1,0 +1,163 @@
+ Image crm-app Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 447B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 2.60kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:20-alpine
+#3 DONE 1.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 171B done
+#4 DONE 0.0s
+
+#5 [ 1/14] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#5 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 13.42kB 0.3s done
+#6 DONE 0.4s
+
+#7 [ 8/14] COPY apps/workers/package.json apps/workers/package.json
+#7 CACHED
+
+#8 [ 7/14] COPY apps/web/package.json apps/web/package.json
+#8 CACHED
+
+#9 [ 6/14] COPY apps/server/package.json apps/server/package.json
+#9 CACHED
+
+#10 [ 9/14] COPY packages/ ./packages/
+#10 CACHED
+
+#11 [12/14] COPY . .
+#11 CACHED
+
+#12 [ 3/14] RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+#12 CACHED
+
+#13 [ 5/14] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* turbo.json ./
+#13 CACHED
+
+#14 [ 2/14] RUN apk add --no-cache libc6-compat openssl postgresql-client
+#14 CACHED
+
+#15 [11/14] RUN pnpm --filter @repo/db exec prisma --version
+#15 CACHED
+
+#16 [10/14] RUN pnpm install --frozen-lockfile
+#16 CACHED
+
+#17 [ 4/14] WORKDIR /app
+#17 CACHED
+
+#18 [13/14] RUN pnpm --filter=@repo/db exec prisma generate --schema=./prisma/schema.prisma
+#18 CACHED
+
+#19 [14/14] RUN pnpm turbo run build     --filter=@repo/db     --filter=server     --filter=workers     --filter=web
+#19 0.644 
+#19 0.644 Attention:
+#19 0.644 Turborepo now collects completely anonymous telemetry regarding usage.
+#19 0.644 This information is used to shape the Turborepo roadmap and prioritize features.
+#19 0.644 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#19 0.644 https://turborepo.dev/docs/telemetry
+#19 0.644 
+#19 0.645 • turbo 2.9.18
+#19 0.678 
+#19 0.678    • Packages in scope: @repo/db, server, web, workers
+#19 0.678    • Running build in 4 packages
+#19 0.678    • Remote caching disabled
+#19 0.678 
+#19 0.705 workers:build: cache miss, executing 2fff515f273800f3
+#19 0.705 server:build: cache miss, executing 1c5263ad789b494c
+#19 0.705 web:build: cache miss, executing d0f0c0b25cd6c3bb
+#19 1.156 web:build: 
+#19 1.156 web:build: > web@0.1.0 build /app/apps/web
+#19 1.156 web:build: > next build
+#19 1.156 web:build: 
+#19 1.159 server:build: 
+#19 1.159 server:build: > server@1.0.0 build /app/apps/server
+#19 1.159 server:build: > tsc -b
+#19 1.159 server:build: 
+#19 1.165 workers:build: 
+#19 1.165 workers:build: > workers@1.0.0 build /app/apps/workers
+#19 1.165 workers:build: > tsc -b
+#19 1.165 workers:build: 
+#19 1.874 web:build: ◇ injected env (11) from ../../env/root.env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+#19 1.874 web:build: ◇ injected env (0) from ../../env/web.env // tip: ⌘ enable debugging { debug: true }
+#19 1.935 web:build: Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#19 1.935 web:build: This information is used to shape Next.js' roadmap and prioritize features.
+#19 1.935 web:build: You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#19 1.935 web:build: https://nextjs.org/telemetry
+#19 1.935 web:build: 
+#19 2.043 web:build: ▲ Next.js 16.2.0 (Turbopack)
+#19 2.043 web:build: 
+#19 2.270 web:build:   Creating an optimized production build ...
+#19 3.056 web:build: ◇ injected env (0) from ../../env/root.env // tip: ⌘ override existing { override: true }
+#19 3.127 web:build: ◇ injected env (0) from ../../env/web.env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+#19 12.60 web:build: ✓ Compiled successfully in 9.5s
+#19 12.63 web:build:   Running TypeScript ...
+#19 20.04 web:build: Failed to type check.
+#19 20.04 web:build: 
+#19 20.04 web:build: ./app/support/page.tsx:389:28
+#19 20.04 web:build: Type error: Cannot find name 'Loader2'.
+#19 20.04 web:build: 
+#19 20.04 web:build:   [90m387 |[0m                       >
+#19 20.04 web:build:   [90m388 |[0m                         {loading ? (
+#19 20.04 web:build: [31m[1m>[0m [90m389 |[0m                           <[33mLoader2[0m className=[32m"w-4 h-4 animate-spin text-white"[0m />
+#19 20.04 web:build:   [90m    |[0m                            [31m[1m^[0m
+#19 20.04 web:build:   [90m390 |[0m                         ) : (
+#19 20.04 web:build:   [90m391 |[0m                           <[33mSend[0m className=[32m"w-4 h-4 text-white"[0m />
+#19 20.04 web:build:   [90m392 |[0m                         )}
+#19 20.09 web:build: Next.js build worker exited with code: 1 and signal: null
+#19 20.12 web:build:  ELIFECYCLE  Command failed with exit code 1.
+#19 20.14  ERROR  web#build: command (/app/apps/web) /usr/local/bin/pnpm run build exited (1)
+#19 20.14 
+#19 20.14  Tasks:    2 successful, 3 total
+#19 20.14 Cached:    0 cached, 3 total
+#19 20.14   Time:    19.492s 
+#19 20.14 Failed:    web#build
+#19 20.14 
+#19 20.14  WARNING  no output files found for task server#build. Please check your `outputs` key in `turbo.json`
+#19 20.14  WARNING  no output files found for task workers#build. Please check your `outputs` key in `turbo.json`
+#19 20.14  ERROR  run failed: command  exited (1)
+#19 ERROR: process "/bin/sh -c pnpm turbo run build     --filter=@repo/db     --filter=server     --filter=workers     --filter=web" did not complete successfully: exit code: 1
+------
+ > [14/14] RUN pnpm turbo run build     --filter=@repo/db     --filter=server     --filter=workers     --filter=web:
+20.14  ERROR  web#build: command (/app/apps/web) /usr/local/bin/pnpm run build exited (1)
+20.14 
+20.14  Tasks:    2 successful, 3 total
+20.14 Cached:    0 cached, 3 total
+20.14   Time:    19.492s 
+20.14 Failed:    web#build
+20.14 
+20.14  WARNING  no output files found for task server#build. Please check your `outputs` key in `turbo.json`
+20.14  WARNING  no output files found for task workers#build. Please check your `outputs` key in `turbo.json`
+20.14  ERROR  run failed: command  exited (1)
+------
+Dockerfile:39
+
+--------------------
+
+  38 |     # Compiles server (tsc -b) and web (next build)
+
+  39 | >>> RUN pnpm turbo run build \
+
+  40 | >>>     --filter=@repo/db \
+
+  41 | >>>     --filter=server \
+
+  42 | >>>     --filter=workers \
+
+  43 | >>>     --filter=web
+
+  44 |     
+
+--------------------
+
+failed to solve: process "/bin/sh -c pnpm turbo run build     --filter=@repo/db     --filter=server     --filter=workers     --filter=web" did not complete successfully: exit code: 1
+

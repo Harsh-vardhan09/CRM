@@ -764,3 +764,43 @@ export const resetPassword = async (
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
+// Public endpoint: Search companies by name (no auth required)
+export const searchCompanies = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { q } = req.query;
+
+    if (!q || typeof q !== "string") {
+      res.status(400).json({ message: "Query parameter 'q' is required." });
+      return;
+    }
+
+    // Case-insensitive search on company name, limit to 10 results
+    const companies = await prisma.company.findMany({
+      where: {
+        name: {
+          contains: q,
+          mode: "insensitive",
+        },
+        status: "active",
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+      take: 10,
+    });
+
+    res.status(200).json({
+      status: "success",
+      data: companies,
+    });
+  } catch (error) {
+    console.error("searchCompanies error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};

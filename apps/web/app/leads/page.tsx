@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useId } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import { AlertCircle, Loader2, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -48,6 +49,7 @@ const STATUSES = ["no_reply", "contacted", "qualified", "unreachable", "lost"];
 export default function LeadsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const addModalTitleId = useId();
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,6 +63,8 @@ export default function LeadsPage() {
   const [addForm, setAddForm] = useState({ name: "", email: "", phone: "", source: "", priority: "low", clientId: "" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
+
+  const modalRef = useModalA11y(showAdd, () => setShowAdd(false));
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -303,11 +307,20 @@ export default function LeadsPage() {
       {/* Add Lead Modal - Ink 900 */}
       <AnimatePresence>
         {showAdd && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div
+            ref={modalRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/70"
-            onClick={() => setShowAdd(false)}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAdd(false);
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={addModalTitleId}
           >
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
@@ -316,7 +329,7 @@ export default function LeadsPage() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-serif text-ivory-text">New Lead</h2>
+                <h2 id={addModalTitleId} className="text-lg font-serif text-ivory-text">New Lead</h2>
                 <button onClick={() => setShowAdd(false)} className="text-muted-ink hover:text-ivory-text transition-colors">
                   <X className="w-5 h-5" />
                 </button>

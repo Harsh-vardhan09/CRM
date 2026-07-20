@@ -21,14 +21,14 @@ export default function Home() {
   }, [user, loading, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-950">
-      <div className="flex flex-col items-center space-y-4">
-        {/* Sleek loading indicator */}
-        <div className="w-12 h-12 border-4 border-t-indigo-500 border-indigo-200 rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-medium text-lg animate-pulse">
-          Checking credentials...
-        </p>
-      </div>
+    <div className="flex items-center justify-center min-h-screen bg-ivory-50 text-ink-text">
+      <svg width="80" height="24" viewBox="0 0 80 24" fill="none">
+        <path
+          d="M4 12 L76 12"
+          stroke="#9C7A3C" strokeWidth="2" strokeLinecap="round"
+          className="animate-pulse"
+        />
+      </svg>
     </div>
   );
 }

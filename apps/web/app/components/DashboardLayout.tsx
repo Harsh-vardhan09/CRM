@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { 
-  ShieldCheck, Users, UserPlus, LogOut, 
-  LayoutDashboard, Bot, Mail, User, Briefcase, FileText, Settings
+import {
+  ShieldCheck, Users, UserPlus, LogOut,
+  LayoutDashboard, Bot, Mail, User, Briefcase, FileText, Settings, Building2, Menu, X
 } from "lucide-react";
 
 interface SidebarLink {
@@ -18,16 +18,25 @@ interface SidebarLink {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!user) return <>{children}</>;
 
   const isAdmin = user.role?.toLowerCase() === "admin" || user.role?.toLowerCase() === "super_admin";
+  const isOwner = (user as any)?.isOwner;
+  const isSuperAdmin = user.role?.toLowerCase() === "super_admin";
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const adminLinks: SidebarLink[] = [
     { href: "/admin", label: "Control Center", icon: ShieldCheck },
     { href: "/admin/roles", label: "Roles", icon: ShieldCheck },
     { href: "/admin/team", label: "Team", icon: Users },
     { href: "/admin/join-requests", label: "Requests", icon: UserPlus },
+    ...(isOwner || isSuperAdmin ? [{ href: "/admin/company", label: "Company", icon: Building2 }] : []),
   ];
 
   const userLinks: SidebarLink[] = [
@@ -44,8 +53,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-ivory-50 text-ink-text selection:bg-brass/10">
+      {/* Mobile Sidebar Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-ink-950/50 z-30 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar - Ink 950 */}
-      <aside className="w-64 bg-ink-950 text-ivory-text border-r border-ink-border flex flex-col justify-between fixed h-screen z-20">
+      <aside className={`w-64 bg-ink-950 text-ivory-text border-r border-ink-border flex flex-col justify-between fixed h-screen z-40 transition-transform duration-200 ${
+        mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+      } lg:translate-x-0`}>
         <div>
           {/* Header & Wordmark */}
           <div className="p-8 border-b border-ink-border flex items-center justify-between">
@@ -107,7 +126,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content Area - Ivory 50 */}
-      <main className="flex-1 pl-64 min-h-screen relative page-enter">
+      <main className="flex-1 min-h-screen relative page-enter lg:pl-64">
+        {/* Mobile Top Bar */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-30 h-16 bg-white border-b border-ivory-border flex items-center px-6 gap-4">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 hover:bg-ivory-100 rounded-lg transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5 text-ink-text" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-brass" />
+            <span className="font-serif text-sm tracking-tight text-ink-text font-semibold">VYOR</span>
+          </div>
+        </div>
+
+        {/* Content with top padding on mobile for top bar */}
+        <div className="lg:hidden pt-16" />
         <div className="p-8 md:p-12 max-w-6xl mx-auto">
           {children}
         </div>

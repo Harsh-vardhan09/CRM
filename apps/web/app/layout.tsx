@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -39,7 +40,9 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${inter.variable} ${ibmPlexMono.variable} antialiased bg-ivory-50 text-ink-text min-h-screen font-sans`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

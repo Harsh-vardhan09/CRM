@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -74,6 +75,7 @@ export default function LeadDetailPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [form, setForm] = useState<Partial<Lead>>({});
 
   // Compose state
@@ -158,9 +160,13 @@ export default function LeadDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete lead "${lead?.name}"? This cannot be undone.`)) return;
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     setDeleting(true);
+    setError("");
     try {
       const res = await fetch(`${API_URL}/leads/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) {
@@ -170,6 +176,7 @@ export default function LeadDetailPage() {
       router.push("/leads");
     } catch (err: any) {
       setError(err.message);
+      setDeleteConfirmOpen(false);
       setDeleting(false);
     }
   };
@@ -260,7 +267,7 @@ export default function LeadDetailPage() {
                   Edit
                 </button>
               )}
-              <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
+              <button onClick={handleDeleteClick} disabled={deleting} className="px-4 py-2 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
                 {deleting ? "Deleting..." : "Delete"}
               </button>
             </div>
@@ -447,6 +454,18 @@ export default function LeadDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete Lead"
+        message={`Delete lead "${lead?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete Lead"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        danger={true}
+        loading={deleting}
+      />
     </div>
   );
 }

@@ -21,7 +21,6 @@ export interface User {
   permissions: UserPermissions;
   orgId?: string;
   lastLoginAt?: string;
-  isSuperAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -96,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok && data.status === "success") {
           setUser(data.user);
           // Redirect based on role
-          if (data.user.role === "admin" || data.user.role === "super_admin") {
+          if (data.user.role?.toLowerCase() === "admin" || data.user.role?.toLowerCase() === "super_admin") {
             router.push("/admin");
           } else {
             router.push("/user");

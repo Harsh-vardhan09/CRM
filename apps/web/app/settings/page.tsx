@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
-import DashboardLayout from "../components/DashboardLayout";
-import { User, ShieldAlert, CheckCircle2, Lock } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -78,83 +77,73 @@ export default function SettingsPage() {
     }
   };
 
-  if (!user) return null;
+  const backHref = user?.role?.toLowerCase() === "admin" || user?.role?.toLowerCase() === "super_admin"
+    ? "/admin"
+    : "/user";
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8 max-w-2xl mx-auto">
-        
-        {/* Header Section */}
-        <div className="space-y-3 pb-8 border-b border-ivory-border">
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
-            <User className="w-3.5 h-3.5" />
-            Account settings
-          </div>
-          <h1 className="text-3xl font-serif tracking-tight text-ink-text">
-            Settings
-          </h1>
-          <p className="text-sm text-muted-ivory">Update your profile and security settings.</p>
+    <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 -z-10 h-72 w-72 translate-x-1/2 rounded-full bg-violet-500/20 blur-3xl" />
+
+      <div className="w-full max-w-2xl space-y-8 z-10">
+        <div>
+          <Link href={backHref} className="inline-flex items-center text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back to Dashboard
+          </Link>
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
+            Account Settings
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">Update your profile and security settings.</p>
         </div>
 
-        {/* Profile Card */}
-        <div className="bg-white border border-ivory-border rounded-xl p-8 shadow-editorial">
-          <h3 className="text-xs font-mono uppercase tracking-wide text-muted-ivory border-b border-ivory-border pb-3 mb-6 flex items-center gap-2">
-            <User className="w-3.5 h-3.5 text-brass" />
-            Profile Information
-          </h3>
-
+        {/* Profile Section */}
+        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+          <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 mb-6">Profile Information</h3>
           <form onSubmit={handleProfileSubmit} className="space-y-5">
-            {profileError && (
-              <div className="rounded-lg border border-brick/20 bg-brick/5 p-3 text-sm text-brick flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4" /> {profileError}
-              </div>
-            )}
-            {profileSuccess && (
-              <div className="rounded-lg border border-moss/20 bg-moss/5 p-3 text-sm text-moss flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> {profileSuccess}
-              </div>
-            )}
-
+            {profileError && <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{profileError}</div>}
+            {profileSuccess && <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">{profileSuccess}</div>}
             <div>
-              <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Display Name</label>
-              <input
-                type="text"
-                value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                required
-                className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                placeholder="Your name"
-              />
+              <label className="block text-sm font-medium text-slate-300">Display Name</label>
+              <div className="mt-1">
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  required
+                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Your name"
+                />
+              </div>
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Avatar URL</label>
-              <input
-                type="url"
-                value={profileForm.avatar}
-                onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                placeholder="https://example.com/avatar.png"
-              />
-              <p className="mt-1.5 text-[10px] text-muted-ivory font-mono">Direct image URL. File upload coming in a later release.</p>
+              <label className="block text-sm font-medium text-slate-300">Avatar URL</label>
+              <div className="mt-1">
+                <input
+                  type="url"
+                  value={profileForm.avatar}
+                  onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
+                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="https://example.com/avatar.png"
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Direct image URL. File upload coming in a later release.</p>
             </div>
-
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-ivory-100 border border-ivory-border flex items-center justify-center text-ink-text font-bold text-sm font-serif overflow-hidden shadow-editorial">
-                {profileForm.avatar ? (
-                  <img src={profileForm.avatar} alt="avatar" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                ) : (
-                  (profileForm.name || user.name || "?").charAt(0).toUpperCase()
-                )}
+              <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md overflow-hidden">
+                {profileForm.avatar
+                  ? <img src={profileForm.avatar} alt="avatar" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  : (profileForm.name || user?.name || "?").charAt(0).toUpperCase()
+                }
               </div>
-              <span className="text-xs text-muted-ivory font-mono">Avatar Preview</span>
+              <span className="text-sm text-slate-400">Preview</span>
             </div>
-
             <div>
               <button
                 type="submit"
                 disabled={profileSubmitting}
-                className="w-full flex justify-center rounded-lg bg-ink-text px-5 py-3 text-sm font-medium text-ivory-text transition hover:bg-ink-800 active:scale-[0.98] disabled:opacity-50"
+                className="w-full flex justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:from-indigo-600 hover:to-violet-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50"
               >
                 {profileSubmitting ? "Saving..." : "Save Profile"}
               </button>
@@ -162,74 +151,63 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* Change Password Card */}
-        <div className="bg-white border border-ivory-border rounded-xl p-8 shadow-editorial">
-          <h3 className="text-xs font-mono uppercase tracking-wide text-muted-ivory border-b border-ivory-border pb-3 mb-6 flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-brass" />
-            Change Password
-          </h3>
-
+        {/* Change Password Section */}
+        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+          <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 mb-6">Change Password</h3>
           <form onSubmit={handlePasswordSubmit} className="space-y-5">
-            {passwordError && (
-              <div className="rounded-lg border border-brick/20 bg-brick/5 p-3 text-sm text-brick flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4" /> {passwordError}
+            {passwordError && <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">{passwordError}</div>}
+            {passwordSuccess && <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-400">{passwordSuccess}</div>}
+            <div>
+              <label className="block text-sm font-medium text-slate-300">Current Password</label>
+              <div className="mt-1">
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  required
+                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="••••••••"
+                />
               </div>
-            )}
-            {passwordSuccess && (
-              <div className="rounded-lg border border-moss/20 bg-moss/5 p-3 text-sm text-moss flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> {passwordSuccess}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300">New Password</label>
+              <div className="mt-1">
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  required
+                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="••••••••"
+                />
               </div>
-            )}
-
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Current Password</label>
-              <input
-                type="password"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                required
-                className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                placeholder="••••••••"
-              />
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">New Password</label>
-              <input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                required
-                className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                placeholder="••••••••"
-              />
+              <label className="block text-sm font-medium text-slate-300">Confirm New Password</label>
+              <div className="mt-1">
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  required
+                  className="block w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-muted-ivory mb-1.5">Confirm New Password</label>
-              <input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                required
-                className="block w-full rounded-lg border border-ivory-border bg-white px-4 py-3 text-sm text-ink-text placeholder-muted-ink outline-none transition focus:border-brass/50 focus:ring-1 focus:ring-brass/30"
-                placeholder="••••••••"
-              />
-            </div>
-
             <div>
               <button
                 type="submit"
                 disabled={passwordSubmitting}
-                className="w-full flex justify-center rounded-lg bg-ink-text px-5 py-3 text-sm font-medium text-ivory-text transition hover:bg-ink-800 active:scale-[0.98] disabled:opacity-50"
+                className="w-full flex justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:from-indigo-600 hover:to-violet-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50"
               >
                 {passwordSubmitting ? "Updating..." : "Update Password"}
               </button>
             </div>
           </form>
         </div>
-
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

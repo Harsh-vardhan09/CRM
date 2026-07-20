@@ -101,7 +101,7 @@ export async function hasPermission(
     select: { accessLevel: true },
   });
   if (!perm) return false;
-  return (LEVEL_RANK[perm.accessLevel as AccessLevel] ?? 0) >= (LEVEL_RANK[required] ?? 0);
+  return LEVEL_RANK[perm.accessLevel as AccessLevel] >= LEVEL_RANK[required];
 }
 
 // ─── Safe serialisers ─────────────────────────────────────────────────────────

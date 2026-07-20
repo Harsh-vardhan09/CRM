@@ -4,161 +4,263 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
-import DashboardLayout from "../components/DashboardLayout";
-import {
-  ShieldCheck, Users, UserPlus, Building2, Mail, Fingerprint, Clock, CheckCircle2, XCircle
-} from "lucide-react";
 
 export default function AdminPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      if (!user) router.push("/login");
-      else if (user.role?.toLowerCase() !== "admin" && user.role?.toLowerCase() !== "super_admin")
-        router.push("/user");
+      if (!user) {
+        router.push("/login");
+      } else if (user.role?.toLowerCase() !== "admin" && user.role?.toLowerCase() !== "super_admin") {
+        router.push("/user"); // Redirect non-admins to sales rep page
+      }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || (user.role?.toLowerCase() !== "admin" && user.role?.toLowerCase() !== "super_admin")) {
+  if (
+    loading ||
+    !user ||
+    (user.role?.toLowerCase() !== "admin" && user.role?.toLowerCase() !== "super_admin")
+  ) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-ivory-50 text-ink-text">
-        <svg width="80" height="24" viewBox="0 0 80 24" fill="none">
-          <path
-            d="M4 12 L76 12"
-            stroke="#9C7A3C" strokeWidth="2" strokeLinecap="round"
-            className="animate-pulse"
-          />
-        </svg>
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-t-indigo-500 border-indigo-200 rounded-full animate-spin"></div>
+          <p className="text-slate-400 font-medium text-lg">Redirecting...</p>
+        </div>
       </div>
     );
   }
 
-  const moduleCards = [
-    ...(user.isSuperAdmin ? [{
-      href: "/super-admin",
-      label: "Platform",
-      desc: "Manage global tenants and company features",
-      icon: Building2,
-      activeState: true,
-    }] : []),
-    { href: "/admin/roles",        label: "Roles",    desc: "Configure granular access and permissions", icon: ShieldCheck, activeState: true },
-    { href: "/admin/team",         label: "Team",     desc: "Manage active users in your organisation",  icon: Users,       activeState: true },
-    { href: "/admin/join-requests",label: "Requests", desc: "Review pending employee access requests",   icon: UserPlus,    activeState: false },
-  ];
-
   return (
-    <DashboardLayout>
-      <div className="space-y-10">
-        {/* Header Title Section */}
-        <div className="space-y-3 pb-8 border-b border-ivory-border">
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-ivory-border bg-ivory-100 px-2.5 py-1 text-xs font-mono uppercase tracking-wide text-muted-ivory">
-            <span className="w-1.5 h-1.5 rounded-full bg-moss animate-pulse" />
-            {user.isSuperAdmin ? "Super Admin" : "Company Admin"}
-          </div>
+    <div className="min-h-screen bg-slate-950 p-6 md:p-12 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 -z-10 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 -z-10 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl"></div>
 
-          <h1 className="text-4xl font-serif tracking-tight text-ink-text">
-            Control Center
-          </h1>
-          <p className="text-muted-ivory text-sm max-w-lg">
-            Manage organisation settings, security roles, and user pipelines with administrative access.
-          </p>
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 space-y-4 md:space-y-0">
+          <div>
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-100 to-indigo-400 bg-clip-text text-transparent">
+              Admin Control Panel
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Configure system features and user organization roles
+            </p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-300 font-medium text-sm transition hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            <span>Log Out</span>
+          </button>
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Identity Card */}
-          <div className="lg:col-span-4 bg-white border border-ivory-border rounded-xl p-6 shadow-editorial">
-            <h3 className="text-xs font-mono uppercase tracking-wide text-muted-ivory flex items-center gap-2 mb-6">
-              <Fingerprint className="w-3.5 h-3.5 text-brass" />
-              Identity
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Admin profile detail card */}
+          <div className="md:col-span-1 backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl space-y-6">
+            <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3">
+              Administrator Profile
             </h3>
-
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-12 w-12 rounded-full bg-ivory-100 border border-ivory-border flex items-center justify-center text-lg font-serif text-ink-text">
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white text-2xl font-bold shadow-md">
                 {user.name.charAt(0)}
               </div>
               <div>
-                <p className="text-ink-text font-semibold text-base">{user.name}</p>
-                <p className="font-mono text-xs text-brass uppercase tracking-wider mt-0.5">
-                  {user.role?.replace("_", " ")}
-                </p>
+                <h4 className="text-slate-200 font-bold text-lg">
+                  {user.name}
+                </h4>
+                <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-medium text-indigo-400 capitalize">
+                  {user.role}
+                </span>
               </div>
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-ivory-border">
-              {[
-                { label: "Email", value: user.email, icon: Mail },
-                { label: "Org ID", value: user.orgId || "N/A", icon: Building2 },
-                { label: "Last Login", value: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : "New Session", icon: Clock },
-              ].map(row => (
-                <div key={row.label} className="flex items-center justify-between py-1">
-                  <div className="flex items-center gap-2">
-                    <row.icon className="w-3.5 h-3.5 text-muted-ivory" />
-                    <span className="text-xs text-muted-ivory font-mono uppercase tracking-wide">{row.label}</span>
-                  </div>
-                  <span className="font-mono text-xs text-ink-text tracking-tight">
-                    {row.value}
-                  </span>
-                </div>
-              ))}
+            <div className="space-y-4 text-sm pt-4 border-t border-slate-800/60">
+              <div>
+                <span className="text-slate-500 block text-xs">
+                  Email Address
+                </span>
+                <span className="text-slate-300 font-medium">{user.email}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-xs">
+                  Organization ID
+                </span>
+                <span className="text-slate-300 font-mono text-xs">
+                  {user.orgId || "None"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-xs">
+                  Last Login Session
+                </span>
+                <span className="text-slate-300 font-medium">
+                  {user.lastLoginAt
+                    ? new Date(user.lastLoginAt).toLocaleString()
+                    : "First Login"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* System Capabilities */}
-          <div className="lg:col-span-8 bg-white border border-ivory-border rounded-xl p-6 shadow-editorial">
-            <h3 className="text-xs font-mono uppercase tracking-wide text-muted-ivory flex items-center gap-2 mb-6">
-              <ShieldCheck className="w-3.5 h-3.5 text-brass" />
-              System Capabilities
+          {/* Permissions and Role Capabilities */}
+          <div className="md:col-span-2 backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl space-y-6">
+            <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3">
+              Role Permissions & System Capabilities
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {Object.entries(user.permissions).map(([key, val]) => (
                 <div
                   key={key}
-                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                    val 
-                      ? "bg-white border-ivory-border" 
-                      : "bg-ivory-100 border-transparent opacity-60"
+                  className={`flex items-center space-x-3 p-4 rounded-xl border transition ${
+                    val
+                      ? "bg-indigo-500/5 border-indigo-500/20 text-slate-200"
+                      : "bg-slate-900/20 border-slate-800/60 text-slate-500"
                   }`}
                 >
-                  <div className={`h-8 w-8 rounded flex items-center justify-center ${
-                    val ? "text-moss bg-ivory-100 border border-ivory-border" : "text-muted-ivory"
-                  }`}>
-                    {val ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center border ${
+                      val
+                        ? "border-indigo-400 text-indigo-400 bg-indigo-500/10"
+                        : "border-slate-800 text-slate-600"
+                    }`}
+                  >
+                    {val ? "✓" : "✗"}
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-ink-text capitalize">{key.replace(/_/g, " ")}</p>
-                    <p className="font-mono text-[10px] text-muted-ivory">
-                      {val ? `Level · ${val}` : "restricted"}
-                    </p>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold capitalize">
+                      {key.replace(/_/g, " ")}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {val ? "Granted to Administrator" : "Disabled for Role"}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Modules Row */}
-          <div className="lg:col-span-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {moduleCards.map(card => (
-                <Link key={card.href} href={card.href} className="block group">
-                  <div className="bg-white border border-ivory-border rounded-xl p-6 shadow-editorial transition-colors hover:border-brass/30 active:scale-[0.98]">
-                    <div className="h-10 w-10 rounded-lg bg-ivory-100 border border-ivory-border flex items-center justify-center mb-4 text-ink-text group-hover:text-brass transition-colors">
-                      <card.icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-ink-text mb-1 group-hover:text-brass transition-colors">{card.label}</h3>
-                    <p className="text-xs text-muted-ivory leading-relaxed">{card.desc}</p>
-                  </div>
-                </Link>
-              ))}
+            <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-5 mt-6 text-sm text-slate-400 space-y-2">
+              <span className="font-semibold text-slate-300 block mb-1">
+                🛡️ Admin Access Note
+              </span>
+              <p>
+                As an administrator, you are granted wide-reaching permissions
+                across organization settings. You can manage sales
+                representatives, edit structural configuration, view financial
+                dashboard pipelines, and verify automations.
+              </p>
             </div>
           </div>
-
         </div>
+
+        {/* Modules Grid */}
+        <div className="mt-8 pt-8 space-y-6 border-t border-slate-800">
+          <h2 className="text-xl font-bold text-slate-200">Modules & Applications</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <Link href="/dashboard" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-indigo-500/50 hover:shadow-indigo-500/20">
+                <div className="h-12 w-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-indigo-300 transition-colors">Dashboard</h3>
+                <p className="text-sm text-slate-400 mt-2">Analytics overview: lead pipeline, channel attribution, and message activity.</p>
+              </div>
+            </Link>
+
+            <Link href="/automations" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-violet-500/50 hover:shadow-violet-500/20">
+                <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-violet-300 transition-colors">Automations</h3>
+                <p className="text-sm text-slate-400 mt-2">Auto-message inactive leads via configurable trigger rules.</p>
+              </div>
+            </Link>
+
+            <Link href="/admin/team" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-indigo-500/50 hover:shadow-indigo-500/20">
+                <div className="h-12 w-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-indigo-300 transition-colors">Team Management</h3>
+                <p className="text-sm text-slate-400 mt-2">Manage your active employees and assign access roles.</p>
+              </div>
+            </Link>
+
+            <Link href="/admin/join-requests" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-violet-500/50 hover:shadow-violet-500/20">
+                <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-violet-300 transition-colors">Join Requests</h3>
+                <p className="text-sm text-slate-400 mt-2">Review and approve new employees requesting to join.</p>
+              </div>
+            </Link>
+
+            <Link href="/support" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-emerald-500/50 hover:shadow-emerald-500/20">
+                <div className="h-12 w-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">Support Inbox</h3>
+                <p className="text-sm text-slate-400 mt-2">View and reply to customer tickets across all channels.</p>
+              </div>
+            </Link>
+
+            <Link href="/clients" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-indigo-500/50 hover:shadow-indigo-500/20">
+                <div className="h-12 w-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-indigo-300 transition-colors">Clients</h3>
+                <p className="text-sm text-slate-400 mt-2">Manage client accounts, contacts, and account relationships.</p>
+              </div>
+            </Link>
+
+            <Link href="/leads" className="block group">
+              <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-violet-500/50 hover:shadow-violet-500/20">
+                <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-200 group-hover:text-violet-300 transition-colors">Leads</h3>
+                <p className="text-sm text-slate-400 mt-2">Track prospects, manage engagement pipelines, and send cross-channel messages.</p>
+              </div>
+            </Link>
+
+            {((user as any).isOwner || user.role?.toLowerCase() === "super_admin") && (
+              <Link href="/admin/company" className="block group">
+                <div className="backdrop-blur-xl bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl transition-all hover:bg-slate-800/60 hover:border-violet-500/50 hover:shadow-violet-500/20">
+                  <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-200 group-hover:text-violet-300 transition-colors">Company Settings</h3>
+                  <p className="text-sm text-slate-400 mt-2">Edit your organization name and manage account status.</p>
+                </div>
+              </Link>
+            )}
+          </div>
+        </div>
+
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

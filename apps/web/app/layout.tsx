@@ -37,8 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fraunces.variable} ${inter.variable} ${ibmPlexMono.variable} antialiased bg-[#0A0B10] text-[#EDE6D6] min-h-screen font-sans`}
-        style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
+        className={`${fraunces.variable} ${inter.variable} ${ibmPlexMono.variable} antialiased bg-ivory-50 text-ink-text min-h-screen font-sans`}
       >
         <AuthProvider>{children}</AuthProvider>
       </body>

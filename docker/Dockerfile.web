@@ -1,28 +1,28 @@
 # docker/Dockerfile.web
 # Production image for Next.js web app (ECS)
-# No migrations, no server/worker artifacts
+# Fix: using standalone mode which includes all needed dependencies
 
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat openssl
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 WORKDIR /app
 
-# ---- Builder: copy everything, install, and build ----
+# ---- Builder: install everything and build ----
 FROM base AS builder
-# Copy workspace and lock file
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
-
-# Copy ALL package.json and source files
+COPY apps/server/package.json apps/server/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/workers/package.json apps/workers/package.json
 COPY packages/ ./packages/
-COPY apps/web ./apps/web/
 
-# Install all dependencies in one go (pnpm resolves entire monorepo)
+# Install dependencies for all workspace packages
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma client
 RUN pnpm --filter=@repo/db exec prisma generate --schema=./prisma/schema.prisma
 
-# Build only the web app
+# Copy full source and build only the web app
+COPY . .
 RUN pnpm turbo run build --filter=web
 
 # ---- Runner: minimal production image ----
@@ -32,7 +32,7 @@ RUN addgroup --system --gid 1001 appuser
 RUN adduser --system --uid 1001 appuser
 WORKDIR /app
 
-# Next.js standalone mode includes runtime, so copy the standalone output
+# Next.js standalone mode includes runtime, copy the standalone output
 COPY --from=builder --chown=appuser:appuser /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=appuser:appuser /app/apps/web/.next/static ./.next/static
 COPY --from=builder --chown=appuser:appuser /app/apps/web/public ./public

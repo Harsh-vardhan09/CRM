@@ -1,28 +1,28 @@
 # docker/Dockerfile.server
 # Production image for Express API (ECS)
-# No migrations (run separately), no web/worker artifacts
+# Fix: pnpm install -r installs ALL workspace package dependencies
 
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat openssl postgresql-client
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 WORKDIR /app
 
-# ---- Builder: copy everything, install, and build ----
+# ---- Builder: install everything and build ----
 FROM base AS builder
-# Copy workspace and lock file
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
-
-# Copy ALL package.json files from packages and apps
+COPY apps/server/package.json apps/server/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/workers/package.json apps/workers/package.json
 COPY packages/ ./packages/
-COPY apps/server ./apps/server/
 
-# Install all dependencies in one go (pnpm resolves entire monorepo)
+# Install dependencies for all workspace packages
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma client
 RUN pnpm --filter=@repo/db exec prisma generate --schema=./prisma/schema.prisma
 
-# Build only the server
+# Copy full source and build only the server
+COPY . .
 RUN pnpm turbo run build --filter=server
 
 # ---- Runner: minimal production image ----
@@ -32,7 +32,7 @@ RUN addgroup --system --gid 1001 appuser
 RUN adduser --system --uid 1001 appuser
 WORKDIR /app
 
-# Copy node_modules (all dependencies for the monorepo)
+# Copy entire node_modules with all symlinks intact from builder
 COPY --from=builder --chown=appuser:appuser /app/node_modules ./node_modules
 
 # Copy built server

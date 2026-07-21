@@ -9,6 +9,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../env/root.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../env/web.env') });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  output: 'standalone',
+};
 
 export default nextConfig;

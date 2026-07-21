@@ -21,7 +21,7 @@ export function useModalA11y(open: boolean, onClose: () => void) {
       "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
     );
     if (focusableElements && focusableElements.length > 0) {
-      focusableElements[0].focus();
+      focusableElements[0]!.focus();
     }
 
     // Handle Escape key
@@ -38,8 +38,8 @@ export function useModalA11y(open: boolean, onClose: () => void) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab" || !focusableElements) return;
 
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
+      const firstElement = focusableElements[0]!;
+      const lastElement = focusableElements[focusableElements.length - 1]!;
       const activeElement = document.activeElement;
 
       // Shift+Tab on first element → focus last element

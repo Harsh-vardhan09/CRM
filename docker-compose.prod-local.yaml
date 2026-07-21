@@ -1,0 +1,63 @@
+# docker-compose.prod-local.yaml
+# Additive override for local testing of split ECS images
+# Use with: docker compose -f docker-compose.yaml -f docker-compose.prod-local.yaml up --build
+#
+# Reuses db/redis/adminer from docker-compose.yaml, replaces the single "app" service
+# with three separate images (web, server, worker) built from docker/Dockerfile.*.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    env_file:
+      - ./env/root.env
+      - ./env/web.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - default
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    restart: unless-stopped
+    env_file:
+      - ./env/root.env
+      - ./env/server.env
+    environment:
+      - DATABASE_URL=postgresql://aarsh:aarsh@db:5432/crm?schema=public
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - default
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - ./env/root.env
+      - ./env/worker.env
+    environment:
+      - DATABASE_URL=postgresql://aarsh:aarsh@db:5432/crm?schema=public
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - default

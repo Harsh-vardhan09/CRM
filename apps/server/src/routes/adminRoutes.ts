@@ -60,7 +60,7 @@ router.get(
   adminController.listRoles,
 );
 
-router.post(
+router.put(
   "/roles/:roleId/permissions",
   protect,
   checkPermission("roles", "full"),

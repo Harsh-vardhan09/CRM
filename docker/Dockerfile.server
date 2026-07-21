@@ -1,0 +1,50 @@
+# docker/Dockerfile.server
+# Production image for Express API (ECS)
+# No migrations (run separately), no web/worker artifacts
+
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat openssl postgresql-client
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+WORKDIR /app
+
+# ---- Builder: copy everything, install, and build ----
+FROM base AS builder
+# Copy workspace and lock file
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
+
+# Copy ALL package.json files from packages and apps
+COPY packages/ ./packages/
+COPY apps/server ./apps/server/
+
+# Install all dependencies in one go (pnpm resolves entire monorepo)
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client
+RUN pnpm --filter=@repo/db exec prisma generate --schema=./prisma/schema.prisma
+
+# Build only the server
+RUN pnpm turbo run build --filter=server
+
+# ---- Runner: minimal production image ----
+FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl postgresql-client
+RUN addgroup --system --gid 1001 appuser
+RUN adduser --system --uid 1001 appuser
+WORKDIR /app
+
+# Copy node_modules (all dependencies for the monorepo)
+COPY --from=builder --chown=appuser:appuser /app/node_modules ./node_modules
+
+# Copy built server
+COPY --from=builder --chown=appuser:appuser /app/apps/server/dist ./apps/server/dist
+
+# Copy prisma package (needed for generated client and runtime)
+COPY --from=builder --chown=appuser:appuser /app/packages/database ./packages/database
+
+USER appuser
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
+
+CMD ["node", "/app/apps/server/dist/index.js"]

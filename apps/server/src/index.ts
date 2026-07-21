@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { promisify } from "util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +15,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../env/root.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../../env/server.env") });
 
 const { connectDB, prisma } = await import("@repo/db");
+const { redis } = await import("./utils/redis.service.js");
 const authRoutes = (await import("./routes/authRoutes.js")).default;
 const supportRoutes = (await import("./routes/supportRoutes.js")).default;
 const webhookRoutes = (await import("./routes/webhookRoutes.js")).default;
@@ -54,8 +56,43 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/automations", automationRoutes);
 
-app.get("/api/health", (req: Request, res: Response) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/api/health", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  let dbStatus = "error";
+  let redisStatus = "error";
+
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000)),
+    ]);
+    dbStatus = "ok";
+  } catch (error) {
+    console.error("Health check: database error", error);
+  }
+
+  try {
+    await Promise.race([
+      promisify(redis.ping.bind(redis))(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 2000)),
+    ]);
+    redisStatus = "ok";
+  } catch (error) {
+    console.error("Health check: redis error", error);
+  }
+
+  const responseTime = Date.now() - startTime;
+  const statusCode = dbStatus === "ok" && redisStatus === "ok" ? 200 : 503;
+
+  res.status(statusCode).json({
+    status: dbStatus === "ok" && redisStatus === "ok" ? "ok" : "degraded",
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: process.uptime(),
+    version: process.env.npm_package_version || "unknown",
+    database: dbStatus,
+    redis: redisStatus,
+    responseTimeMs: responseTime,
+  });
 });
 
 const seedDatabase = async () => {

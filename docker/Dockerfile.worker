@@ -1,0 +1,46 @@
+# docker/Dockerfile.worker
+# Production image for BullMQ workers (ECS)
+# No migrations, no web/server artifacts, no HEALTHCHECK (rely on process exit)
+
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+WORKDIR /app
+
+# ---- Builder: copy everything, install, and build ----
+FROM base AS builder
+# Copy workspace and lock file
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
+
+# Copy ALL package.json files and source
+COPY packages/ ./packages/
+COPY apps/workers ./apps/workers/
+
+# Install all dependencies in one go (pnpm resolves entire monorepo)
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client
+RUN pnpm --filter=@repo/db exec prisma generate --schema=./prisma/schema.prisma
+
+# Build only the workers
+RUN pnpm turbo run build --filter=workers
+
+# ---- Runner: minimal production image ----
+FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
+RUN addgroup --system --gid 1001 appuser
+RUN adduser --system --uid 1001 appuser
+WORKDIR /app
+
+# Copy node_modules (all dependencies for the monorepo)
+COPY --from=builder --chown=appuser:appuser /app/node_modules ./node_modules
+
+# Copy built workers
+COPY --from=builder --chown=appuser:appuser /app/apps/workers/dist ./apps/workers/dist
+
+# Copy prisma package (needed for generated client and runtime)
+COPY --from=builder --chown=appuser:appuser /app/packages/database ./packages/database
+
+USER appuser
+
+CMD ["node", "/app/apps/workers/dist/index.js"]

@@ -49,9 +49,11 @@ export default function RolesPage() {
       const res = await fetch(`${API_URL}/admin/roles`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch roles");
       const data = await res.json();
-      setRoles(data.roles || data || []);
+      const rolesArray = Array.isArray(data.data) ? data.data : [];
+      setRoles(rolesArray);
     } catch (e: any) {
       setError(e.message);
+      setRoles([]);
     } finally {
       setIsLoading(false);
     }

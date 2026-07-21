@@ -786,7 +786,6 @@ export const searchCompanies = async (
           mode: "insensitive",
         },
         status: "active",
-        deletedAt: null,
       },
       select: {
         id: true,

@@ -204,7 +204,7 @@ const seedDatabase = async () => {
     const defaultUsers: SeedUser[] = [
       {
         email: "superadmin@crm.com",
-        password: "super123",
+        password: "admin123",
         name: "Super Admin User",
         isOwner: false,
         isSuperAdmin: true,
